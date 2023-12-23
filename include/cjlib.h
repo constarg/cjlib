@@ -85,7 +85,7 @@ static inline void cjlib_json_free_array(union cjlib_json_datatype *src)
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_set_datatype(struct cjlib_json_obj restrict *src, const char restrict *name, 
-                                   union cjlib_json_datatype restrict *value);
+                                   union cjlib_json_datatype restrict *value, enum cjlib_json_datatypes datatype);
 
 /**
  * @param dst Where to store the requested data.
@@ -94,7 +94,7 @@ extern int cjlib_json_set_datatype(struct cjlib_json_obj restrict *src, const ch
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_get_datatype(union cjlib_json_datatype restrict *dst, const char restrict *name,
-                                   const struct cjlib_json_obj restrict *json_obj);
+                                   const struct cjlib_json_obj restrict *json_obj, enum cjlib_json_datatypes datatype);
 
 /**
  * @param dst The json object acociated with the json file.
