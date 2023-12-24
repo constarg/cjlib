@@ -1,3 +1,4 @@
+// @file: cjlib.h
 #ifndef CJLIB_H
 #define CJLIB_H
 
@@ -44,7 +45,7 @@ struct cjlib_json_datatype_ext
 {
     union cjlib_json_datatype datatype_value;
     enum cjlib_json_datatypes datatype;
-}
+};
 
 /**
  * The json object. !Library user must ignore this!.
@@ -52,6 +53,7 @@ struct cjlib_json_datatype_ext
 struct cjlib_json_obj
 {
     cjlib_json_fd fd; // The file descriptor of the json file.
+    // TODO - here has to be a dictionary which will contains the cjlib_json_datatype_ext, acociated with a name as a key.
 };
 
 
