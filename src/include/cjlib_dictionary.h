@@ -1,4 +1,6 @@
 // @file: cjlib_dictionary.h
+#ifndef CJLIB_DICTIONARY_H
+#define CJLIB_DICTIONARY_H
 
 #include <memory.h>
 
@@ -57,3 +59,5 @@ extern int cjlib_dict_insert(const cjlib_json_datatype_ext restrict *src, cjlib_
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_remove(cjlib_dict restrict *dict, const char restrict *key);
+
+#endif

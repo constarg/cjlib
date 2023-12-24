@@ -7,6 +7,8 @@
 #include <malloc.h>
 #include <stdlib.h>
 
+#include "cjlib_dictionary.h"
+
 typedef int cjlib_json_num;
 typedef bool cjlib_json_bool;
 
@@ -29,11 +31,11 @@ enum cjlib_json_datatypes
 */
 union cjlib_json_datatype
 {
-    char *str;                          // string
-    cjlib_json_num num;                 // Number
-    cjlib_json_bool boolean;            // Boolean.
-    struct cjlib_json obj;              // json object.
-    struct cjlib_json_datatype *arr;    // array.
+    char *c_str;                          // string
+    cjlib_json_num c_num;                 // Number
+    cjlib_json_bool c_boolean;            // Boolean.
+    struct cjlib_json c_obj;              // json object.
+    struct cjlib_json_datatype *c_arr;    // array.
 };
 
 /**
@@ -43,8 +45,8 @@ union cjlib_json_datatype
 */
 struct cjlib_json_datatype_ext
 {
-    union cjlib_json_datatype datatype_value;
-    enum cjlib_json_datatypes datatype;
+    union cjlib_json_datatype c_datatype_value;
+    enum cjlib_json_datatypes c_datatype;
 };
 
 /**
@@ -52,8 +54,8 @@ struct cjlib_json_datatype_ext
 */
 struct cjlib_json_obj
 {
-    cjlib_json_fd fd; // The file descriptor of the json file.
-    // TODO - here has to be a dictionary which will contains the cjlib_json_datatype_ext, acociated with a name as a key.
+    cjlib_json_fd c_fd; // The file descriptor of the json file.
+    cjlib_dict c_dict;  // The dictionary that contains the values of the json.
 };
 
 
