@@ -27,15 +27,24 @@ enum cjlib_json_datatypes
 };
 
 /**
+ * The json object. !Library user must ignore this!.
+*/
+struct cjlib_json_obj
+{
+    cjlib_json_fd c_fd; // The file descriptor of the json file.
+    cjlib_dict c_dict;  // The dictionary that contains the values of the json.
+};
+
+/**
  * Json data type. Important for the user who uses this library.
 */
 union cjlib_json_datatype
 {
-    char *c_str;                          // string
-    cjlib_json_num c_num;                 // Number
-    cjlib_json_bool c_boolean;            // Boolean.
-    struct cjlib_json c_obj;              // json object.
-    struct cjlib_json_datatype *c_arr;    // array.
+    char *c_str;                      // string
+    cjlib_json_num c_num;             // Number
+    cjlib_json_bool c_boolean;        // Boolean.
+    struct cjlib_json_obj c_obj;      // json object.
+    union cjlib_json_datatype *c_arr; // array.
 };
 
 /**
@@ -49,20 +58,7 @@ struct cjlib_json_datatype_ext
     enum cjlib_json_datatypes c_datatype;
 };
 
-/**
- * The json object. !Library user must ignore this!.
-*/
-struct cjlib_json_obj
-{
-    cjlib_json_fd c_fd; // The file descriptor of the json file.
-    cjlib_dict c_dict;  // The dictionary that contains the values of the json.
-};
-
-
-/**
- * @param src The object to initialize.
-*/
-static inline void cjlib_json_obj_init(struct cjlib_json_obj restrict *src)
+static inline void cjlib_json_obj_init(struct cjlib_json_obj *restrict src)
 {
     (void)memset(src, 0x0, sizeof(struct cjlib_json_obj));
 }
@@ -70,7 +66,7 @@ static inline void cjlib_json_obj_init(struct cjlib_json_obj restrict *src)
 /**
  * @param src The datatype to initialize. 
 */
-static inline void cjlib_json_datatype_init(union cjlib_json_datatype restrict *src)
+static inline void cjlib_json_datatype_init(union cjlib_json_datatype *restrict src)
 {
     (void)memset(src, 0x0, sizeof(union cjlib_json_datatype));
 }
@@ -98,8 +94,8 @@ static inline void cjlib_json_free_array(union cjlib_json_datatype *src)
  * @param value The value to acociate with the @param name
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_set_datatype(struct cjlib_json_obj restrict *src, const char restrict *name, 
-                                   union cjlib_json_datatype restrict *value, enum cjlib_json_datatypes datatype);
+extern int cjlib_json_set_datatype(struct cjlib_json_obj *restrict src, const char *restrict name, 
+                                   union cjlib_json_datatype *restrict value, enum cjlib_json_datatypes datatype);
 
 /**
  * @param dst Where to store the requested data.
@@ -107,32 +103,32 @@ extern int cjlib_json_set_datatype(struct cjlib_json_obj restrict *src, const ch
  * @param json_obj The object which contains the data.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_get_datatype(union cjlib_json_datatype restrict *dst, const char restrict *name,
-                                   const struct cjlib_json_obj restrict *json_obj, enum cjlib_json_datatypes datatype);
+extern int cjlib_json_get_datatype(union cjlib_json_datatype *restrict dst, const char *restrict name,
+                                   const struct cjlib_json_obj *restrict json_obj, enum cjlib_json_datatypes datatype);
 
 /**
  * @param dst The json object acociated with the json file.
  * @param json_path The path to the json file of interest.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_open(struct cjlib_json_obj restrict *dst, const char restrict *json_path);
+extern int cjlib_json_open(struct cjlib_json_obj *restrict dst, const char *restrict json_path);
 
 /**
  * @param src The json object acociated with the open file.
 */
-extern int cjlib_json_close(const struct cjlib_json_obj restrict *src);
+extern int cjlib_json_close(const struct cjlib_json_obj *restrict src);
 
 /**
  * @param dst Where to put all the informations about the json.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_read(struct cjlib_json_obj restrict *dst);
+extern int cjlib_json_read(struct cjlib_json_obj *restrict dst);
 
 /**
  * @param src The json to write back.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_dump(const struct cjlib_json_obj restrict *src);
+extern int cjlib_json_dump(const struct cjlib_json_obj *restrict src);
 
 
 #endif
