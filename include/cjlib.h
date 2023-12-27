@@ -125,6 +125,13 @@ extern int cjlib_json_close(const struct cjlib_json_obj *restrict src);
 extern int cjlib_json_read(struct cjlib_json_obj *restrict dst);
 
 /**
+ * @param src The json object
+ * @return on success, a pointer at the start of a string that represent the string version
+ * of the given json file. Otherwise, null.
+*/
+extern char *cjlib_json_stringtify(const struct cjlib_json_obj *restrict src);
+
+/**
  * @param src The json to write back.
  * @return 0 on success, otherwise -1.
 */
