@@ -16,7 +16,7 @@ struct avl_bs_tree_node
     char *avl_key;                              // The key of the node.
     struct avl_bs_tree_node *avl_left;          // The left child of the node.
     struct avl_bs_tree_node *avl_right;         // The right child of the node.
-};
+};      
 
 typedef struct avl_bs_tree_node cjlib_dict;
 
@@ -30,14 +30,14 @@ static inline void cjlib_dict_init(cjlib_dict *restrict src)
 }
 
 /**
- * This function search for an element that has an acociated key eqaul to 'key'.
+ * This function search for an element that has an acociated key equal to 'key'.
  * 
  * @param dst Where to put the result of the search.
  * @param dict The dictionary.
  * @param key The key that is acociated with the element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const cjlib_dict *restrict dict, 
+extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const cjlib_dict *dict, 
                              const char *restrict key);
 
 /**
