@@ -11,9 +11,11 @@
 
 #include "cjlib_dictionary.h"
 
-static int _child_hight(const struct avl_bs_tree_node *restrict src)
-{
 
+
+static int get_node_height(const struct avl_bs_tree_node *src)
+{
+    
 }
 
 static int calc_balance_factor(const struct avl_bs_tree_node *restrict src)
@@ -30,7 +32,7 @@ static int calc_balance_factor(const struct avl_bs_tree_node *restrict src)
  * @param src2 The second source binary tree node.
  * @return True if the src1 is grater to src2, otherwise false.
 */
-static bool compare_nodes(const struct avl_bs_tree_node *restrict src1, const struct avl_bs_tree_node *restrict src2) 
+static inline bool compare_nodes(const struct avl_bs_tree_node *restrict src1, const struct avl_bs_tree_node *restrict src2) 
 {
     return (strcmp(src1->avl_key, src2->avl_key) > 0)? true:false;
 }
