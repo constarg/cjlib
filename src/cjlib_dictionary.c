@@ -42,7 +42,7 @@ int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const struct
 {
     struct avl_bs_tree_node *curr_node = dict;
     int compare_key = 0;
-    while (dict) {
+    while (curr_node) {
         compare_key = strcmp(key, dict->avl_key);
 
         if (compare_key > 0) {
