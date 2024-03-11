@@ -72,6 +72,6 @@ extern size_t cjlib_queue_size(const struct cjlib_queue *restrict src);
  * @param queue A pointer to the queue of interest.
  * @return On error -1, otherwise 0.
 */
-extern int cjlib_queue_enquue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
+extern int cjlib_queue_enqeue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
 
 #endif

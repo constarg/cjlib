@@ -34,7 +34,7 @@ size_t cjlib_queue_size(const struct cjlib_queue *restrict src)
     return q_size;
 }
 
-int cjlib_queue_enquue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue)
+int cjlib_queue_enqueue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue)
 {
     if (NULL == src) return 0;
 

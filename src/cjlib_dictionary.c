@@ -36,8 +36,8 @@ static size_t get_node_height(const struct avl_bs_tree_node *restrict src)
         // cause the queue will reject any NULL source.
         for (int i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
             cjlib_queue_deqeue(tmp, &lvl_traversal_q);
-            if (0 != cjlib_queue_enquue(tmp->avl_left, &lvl_traversal_q)) return -1;   
-            if (0 != cjlib_queue_enquue(tmp->avl_right, &lvl_traversal_q)) return -1;
+            if (0 != cjlib_queue_enqeue(tmp->avl_left, &lvl_traversal_q)) return -1;   
+            if (0 != cjlib_queue_enqeue(tmp->avl_right, &lvl_traversal_q)) return -1;
         }
         current_lvl += 1;
     }
