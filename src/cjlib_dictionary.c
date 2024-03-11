@@ -10,31 +10,54 @@
 #include <string.h>
 
 #include "cjlib_dictionary.h"
+#include "cjlib_queue.h"
 
 
-
-static int get_node_height(const struct avl_bs_tree_node *src)
+/**
+ * This function calculate the height of a tree/subtree using
+ * the lvl order traversal method combined with a queue.
+*/
+static size_t get_node_height(const struct avl_bs_tree_node *restrict src)
 {
-    
-}
+    if (NULL == src || NULL == src->avl_left || NULL == src->avl_right) {
+        return 0;
+    }
 
-static int calc_balance_factor(const struct avl_bs_tree_node *restrict src)
-{
+    struct cjlib_queue lvl_traversal_q;
+    cjlib_queue_init(&lvl_traversal_q);
 
+    struct avl_bs_tree_node *tmp = NULL;
+    size_t current_lvl = 0;
+
+    if (0 != cjlib_queue_enquue(src, &lvl_traversal_q)) return -1;
+
+    while (!cjlib_queue_is_empty(&lvl_traversal_q)) {
+        // NO if - statement needed to ensure that left or right child is NULL,
+        // cause the queue will reject any NULL source.
+        for (int i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
+            cjlib_queue_deqeue(tmp, &lvl_traversal_q);
+            if (0 != cjlib_queue_enquue(tmp->avl_left, &lvl_traversal_q)) return -1;   
+            if (0 != cjlib_queue_enquue(tmp->avl_right, &lvl_traversal_q)) return -1;
+        }
+        current_lvl += 1;
+    }
+
+    return current_lvl - 1;
 }
 
 /**
- * This function compare the two nodes, given as argument, and returns true if the
- * @src1 is greater to src2. Such a function is important for the binary tree
- * implementation.
- * 
- * @param src1 The first source binary tree node.
- * @param src2 The second source binary tree node.
- * @return True if the src1 is grater to src2, otherwise false.
+ * This method calculate the balance factor of a binary search tree.
+ * @param src A pointer that points to the AVL tree of interest
+ * @return An integer that represent the ballance factor of the AVL tree.
 */
-static inline bool compare_nodes(const struct avl_bs_tree_node *restrict src1, const struct avl_bs_tree_node *restrict src2) 
+static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict src)
 {
-    return (strcmp(src1->avl_key, src2->avl_key) > 0)? true:false;
+    // Get the height of both children
+    int left_subtree_h  = get_node_height(src->avl_left);
+    int right_subtree_h = get_node_height(src->avl_right);
+
+    // Calculate the balance factor.
+    return (int) abs(left_subtree_h - right_subtree_h);
 }
 
 int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const struct avl_bs_tree_node *dict, 
@@ -61,10 +84,20 @@ int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const struct
 int cjlib_dict_insert(const struct cjlib_json_datatype_ext *restrict src, struct avl_bs_tree_node *restrict dict,
                       const char *restrict key)
 {
-
+    // AFTER INSERTION
+    if (calc_balance_factor(dict) <= 1) {
+        // OK
+    } else {
+        // Not ok, the tree is not balanced.
+    }
 }
 
 int cjlib_dict_remove(struct avl_bs_tree_node *restrict dict, const char *restrict key)
 {
-
+    // AFTER DELETION
+    if (calc_balance_factor(dict) <= 1) {
+        // OK
+    } else {
+        // Not ok, the tree is not balanced.
+    }
 }

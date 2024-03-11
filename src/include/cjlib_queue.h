@@ -3,6 +3,7 @@
 #define CJLIB_QUEUE
 
 #include <memory.h>
+#include <stdbool.h>
 
 #include "cjlib_dictionary.h"
 
@@ -46,14 +47,21 @@ static inline void cjlib_queue_init(struct cjlib_queue *restrict src)
  * @param dst A pointer that points the place where the data must be stored.
  * @param qeueu A pointer to the queue of interest.
 */
-void cjlib_queue_deqeue(struct avl_bs_tree_node *restrict dst, const struct cjlib_queue *restrict queue);
+extern void cjlib_queue_deqeue(struct avl_bs_tree_node *restrict dst, struct cjlib_queue *restrict queue);
 
 /**
  * This function check wether the queue is empty.
  * 
  * @param queue A pointer to the queue of interest..
 */
-bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue);
+extern bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue);
+
+/**
+ * This funciton determines the current size of the queue
+ * @param src A pointer that points to the queue of interest
+ * @return The size of that the queue given in @src.
+*/
+extern size_t cjlib_queue_size(const struct cjlib_queue *restrict src);
 
 /**
  * This function store new data in the rear of the queue. After the call of this
@@ -62,7 +70,8 @@ bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue);
  * 
  * @param src A pointer that points to the data to be stored.
  * @param queue A pointer to the queue of interest.
+ * @return On error -1, otherwise 0.
 */
-void cjlib_queue_enquue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
+extern int cjlib_queue_enquue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
 
 #endif
