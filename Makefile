@@ -16,16 +16,16 @@ debug: dir_make ${obj_files_debug}
 	ar rcs ./lib/lib_cjlib_debug.a ./bin/lib_cjlib_debug.o 
 
 ./build/cjlib_queue.o: ./src/cjlib_queue.c
-	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_queue.c ${libraries} -o ./build/cjlib_queue.o
+	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_queue.c -o ./build/cjlib_queue.o
 
 ./build/cjlib_dictionary.o: ./src/cjlib_dictionary.c
-	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_dictionary.c ${libraries} -o ./build/cjlib_dictionary.o
+	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_dictionary.c -o ./build/cjlib_dictionary.o
 
 ./build/cjlib_queue_debug.o: ./src/cjlib_queue.c
-	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_queue.c ${libraries} -o ./build/cjlib_queue_debug.o
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_queue.c -o ./build/cjlib_queue_debug.o
 
 ./build/cjlib_dictionary_debug.o: ./src/cjlib_dictionary.c
-	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_dictionary.c ${libraries} -o ./build/cjlib_dictionary_debug.o
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_dictionary.c -o ./build/cjlib_dictionary_debug.o
 
 dir_make:
 	mkdir -p ./bin/

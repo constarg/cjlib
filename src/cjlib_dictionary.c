@@ -104,7 +104,7 @@ static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict sr
  * 
 */
 static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict, const char *restrict key, 
-                                                   bool get_parent)
+                                            bool get_parent)
 {
     struct avl_bs_tree_node *curr_node = dict;
     struct avl_bs_tree_node *curr_parent = dict;
