@@ -16,11 +16,19 @@ typedef int cjlib_json_fd;
 typedef cjlib_dict cjlib_json_object;
 
 // Some useful macros.
-#define CJLIB_GETNUMBER(DATA) DATA.c_num
-#define CJLIB_GETSTRING(DATA) DATA.c_str
-#define CJLIB_GETBOOL(DATA)   DATA.c_boolean
-#define CJLIB_GETOBJ(DATA)    DATA.c_obj
-#define CJLIB_GETARR(DATA)    DATA.c_arr
+// Retreive the number which is inside the data.
+#define CJLIB_GET_NUMBER(CJLIB_DATA) CJLIB_DATA.c_datatype_value.c_num
+// Retreive the string which is inside the data.
+#define CJLIB_GET_STRING(CJLIB_DATA) CJLIB_DATA.c_datatype_value.c_str
+// Retreive the boolean which is inside the data.
+#define CJLIB_GET_BOOL(CJLIB_DATA)   CJLIB_DATA.c_datatype_value.c_boolean
+// Retreive the object which is inside the data.
+#define CJLIB_GET_OBJ(CJLIB_DATA)    CJLIB_DATA.c_datatype_value.c_obj
+// Retreive the Array which is inside the data.
+#define CJLIB_GET_ARR(CJLIB_DATA)    CJLIB_DATA.c_datatype_value.c_arr
+
+// Retreive the type which is inside the data.
+#define CJLIB_GET_TYPE(CJLIB_DATA) CJLIB_DATA.c_datatype
 
 /**
  * The available datatypes, that json support.
@@ -46,13 +54,13 @@ struct cjlib_json
 /**
  * Json data type. Important for the user who uses this library.
 */
-union cjlib_json_data
+union cjlib_json_data_disting
 {
-    char *c_str;                      // string
-    cjlib_json_num c_num;             // Number
-    cjlib_json_bool c_boolean;        // Boolean.
-    cjlib_json_object c_obj;          // json object.
-    union cjlib_json_data *c_arr;     // array.
+    char *c_str;                           // string
+    cjlib_json_num c_num;                  // Number
+    cjlib_json_bool c_boolean;             // Boolean.
+    cjlib_json_object c_obj;               // json object.
+    union cjlib_json_data_disting *c_arr;  // array.
 };
 
 /**
@@ -60,9 +68,9 @@ union cjlib_json_data
  * used in order to know what datatype is chosed
  * from the available options on the union, cjlib_json_datatype.
 */
-struct cjlib_json_data_ext
+struct cjlib_json_data
 {
-    union cjlib_json_data c_datatype_value;
+    union cjlib_json_data_disting c_datatype_value;
     enum cjlib_json_datatypes c_datatype;
 };
 
@@ -79,24 +87,24 @@ static inline void cjlib_json_object_init(cjlib_json_object *restrict src)
 /**
  * @param src The datatype to initialize. 
 */
-static inline void cjlib_json_data_init(union cjlib_json_data *restrict src)
+static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
 {
-    (void)memset(src, 0x0, sizeof(union cjlib_json_data));
+    (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
 }
 
 /**
  * @param size The number of elements of the array.
  * @return A pointer to the newly created array on success. On error NULL.
 */
-static inline union cjlib_json_data *cjlib_json_make_array(size_t size) 
+static inline struct cjlib_json_data *cjlib_json_make_array(size_t size) 
 {
-    return (union cjlib_json_data *) malloc(sizeof(union cjlib_json_data) * size);
+    return (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data) * size);
 }
 
 /**
  * @param src The array to be freed.
 */
-static inline void cjlib_json_free_array(union cjlib_json_data *src)
+static inline void cjlib_json_free_array(struct cjlib_json_data *src)
 {
     free(src);
 }
@@ -111,7 +119,7 @@ static inline void cjlib_json_free_array(union cjlib_json_data *src)
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict key, 
-                                 struct cjlib_json_data_ext *restrict value, enum cjlib_json_datatypes datatype);
+                                 struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype);
 
 /**
  * This function get the data acociated with the key.
@@ -121,7 +129,7 @@ extern int cjlib_json_object_set(cjlib_json_object *restrict src, const char *re
  * @param value The value acociated with the key.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_object_get(struct cjlib_json_data_ext *restrict dst, const cjlib_json_object *restrict src,
+extern int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src,
                                  const char *restrict key);
 
 /**
@@ -131,7 +139,7 @@ extern int cjlib_json_object_get(struct cjlib_json_data_ext *restrict dst, const
  * @param key A string that acociates a value with it. 
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_object_remove(struct cjlib_json_data_ext *restrict dst, const cjlib_json_object *restrict src, 
+extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src, 
                                     const char *key);
 
 /**
@@ -144,7 +152,7 @@ extern int cjlib_json_object_remove(struct cjlib_json_data_ext *restrict dst, co
  * @return 0 on success, otherwise -1.
 */
 static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *restrict key, 
-                                 struct cjlib_json_data_ext *restrict value, enum cjlib_json_datatypes datatype)
+                                 struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
     return cjlib_json_object_set(&src->c_dict, key, value, datatype);
 }
@@ -157,7 +165,7 @@ static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *re
  * @param value The value acociated with the key.
  * @return 0 on success, otherwise -1.
 */
-static inline int cjlib_json_get(struct cjlib_json_data_ext *restrict dst, const struct cjlib_json *restrict src, 
+static inline int cjlib_json_get(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
                                  const char *restrict key)
 {
     return cjlib_json_object_get(dst, &src->c_dict, key);
@@ -169,8 +177,8 @@ static inline int cjlib_json_get(struct cjlib_json_data_ext *restrict dst, const
  * @param key A string that acociates a value with it. 
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_remove(struct cjlib_json_data_ext *restrict dst, const struct cjlib_json *restrict src, 
-                                    const char *key)
+static inline int cjlib_json_remove(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
+                             const char *key)
 {
     return cjlib_json_object_remove(dst, &src->c_dict, key);
 }
@@ -202,7 +210,12 @@ extern int cjlib_json_read(struct cjlib_json *restrict dst);
  * @return on success, a pointer at the start of a string that represent the string version
  * of the given json file. Otherwise, null.
 */
-extern char *cjlib_json_stringtify(const cjlib_json_object *restrict src);
+extern char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src);
+
+static inline char *cjlib_json_stringtify(struct cjlib_json *restrict src)
+{
+    return cjlib_json_object_stringtify(&src->c_dict);
+}
 
 /**
  * This function write back the contents of the json.

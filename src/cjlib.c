@@ -6,18 +6,18 @@
 #include "cjlib_dictionary.h"
 
 int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict key, 
-                          struct cjlib_json_data_ext *restrict value, enum cjlib_json_datatypes datatype)
+                          struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
     return 0;
 }
 
-int cjlib_json_object_get(struct cjlib_json_data_ext *restrict dst, const cjlib_json_object *restrict src,
+int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src,
                           const char *restrict key)
 {
     return 0;
 }
 
-int cjlib_json_object_remove(struct cjlib_json_data_ext *restrict dst, const cjlib_json_object *restrict src, 
+int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src, 
                              const char *key)
 {
     return 0;
@@ -42,6 +42,11 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     // 1. Read the contents of the file, spcecified in the file descriptor
     // 2. Parse the json file and build the dictionary in memory.
     return 0;
+}
+
+char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
+{
+
 }
 
 int cjlib_json_dump(const struct cjlib_json *restrict src)

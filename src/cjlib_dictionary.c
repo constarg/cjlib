@@ -124,7 +124,7 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
     return (get_parent == false)? curr_node:curr_parent;
 }
 
-int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const struct avl_bs_tree_node *restrict dict, 
+int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_tree_node *restrict dict, 
                       const char *restrict key)
 {
     struct avl_bs_tree_node *tmp = search_node(dict, key, S_RETRIEVE_KEY_NODE);
@@ -132,16 +132,16 @@ int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const struct
         // There is no node with such a key.
         return -1;
     } else {
-        (void)memcpy(dst, tmp->avl_data, sizeof(struct cjlib_json_datatype_ext));
+        (void)memcpy(dst, tmp->avl_data, sizeof(struct cjlib_json_data));
     }
 
     return 0;
 }
 
-int cjlib_dict_insert(const struct cjlib_json_datatype_ext *restrict src, struct avl_bs_tree_node *restrict dict,
+int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_tree_node *restrict dict,
                       const char *restrict key)
 {
-    struct cjlib_json_datatype_ext tmp;
+    struct cjlib_json_data tmp;
     struct avl_bs_tree_node *parent_node;
     struct avl_bs_tree_node *new_node;
     int compare;
@@ -155,7 +155,7 @@ int cjlib_dict_insert(const struct cjlib_json_datatype_ext *restrict src, struct
     cjlib_dict_init(new_node);
 
     new_node->avl_key = key;
-    (void)memcpy(&new_node->avl_data, src, sizeof(struct cjlib_json_datatype_ext));
+    (void)memcpy(&new_node->avl_data, src, sizeof(struct cjlib_json_data));
 
     // Decide where to put the new node.
     compare = strcmp(key, parent_node->avl_key);

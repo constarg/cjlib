@@ -13,7 +13,7 @@
 */
 struct avl_bs_tree_node
 {
-    struct cjlib_json_datatype_ext *avl_data;   // The data that the node holds.
+    struct cjlib_json_data *avl_data;   // The data that the node holds.
     char *avl_key;                              // The key of the node.
     struct avl_bs_tree_node *avl_left;          // The left child of the node.
     struct avl_bs_tree_node *avl_right;         // The right child of the node.
@@ -38,7 +38,7 @@ static inline void cjlib_dict_init(cjlib_dict *restrict src)
  * @param key The key that is acociated with the element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const cjlib_dict *restrict dict, 
+extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict *restrict dict, 
                              const char *restrict key);
 
 /**
@@ -49,7 +49,7 @@ extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const
  * @param key The key to acociate this element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_insert(const struct cjlib_json_datatype_ext *restrict src, cjlib_dict *restrict dict,
+extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict *restrict dict,
                              const char *restrict key);
 
 /**
