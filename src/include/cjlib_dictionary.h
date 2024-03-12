@@ -3,6 +3,7 @@
 #define CJLIB_DICTIONARY_H
 
 #include <memory.h>
+#include <stdlib.h>
 
 #include "cjlib_dictionary.h"
 #include "cjlib.h"
@@ -37,7 +38,7 @@ static inline void cjlib_dict_init(cjlib_dict *restrict src)
  * @param key The key that is acociated with the element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const cjlib_dict *dict, 
+extern int cjlib_dict_search(struct cjlib_json_datatype_ext *restrict dst, const cjlib_dict *restrict dict, 
                              const char *restrict key);
 
 /**
@@ -58,6 +59,14 @@ extern int cjlib_dict_insert(const struct cjlib_json_datatype_ext *restrict src,
  * @param key The key of the element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_remove(cjlib_dict *restrict dict, const char *restrict key);
+extern int cjlib_dict_remove(cjlib_dict *dict, const char *restrict key);
+
+/**
+ * This function free's the space of all the nodes in the
+ * AVL tree.
+ * @param dict A pointer to the dictionary to delete.
+ * @return The height of the dictinary (a feature that came as after affect due to the implemantation)
+*/
+extern size_t cjlib_dict_destroy(cjlib_dict *dict);
 
 #endif
