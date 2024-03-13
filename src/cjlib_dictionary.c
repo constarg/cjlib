@@ -31,6 +31,16 @@
 #define T_NODE_IS_RIGHT(COMP) COMP > 0
 
 /**
+ * Which type of rotation must be executed
+ * on the imbalanced tree.
+*/
+enum rotation_type
+{
+    LL_ROTATION,
+    RR_ROTATION
+};
+
+/**
  * This function calculate the height of a tree/subtree using
  * the lvl order traversal method combined with a queue. Also, 
  * it free's the memory of each tree node, if delete_nodes flag is set
@@ -130,7 +140,7 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
             break;
         }
     }
-    return (get_parent == false)? curr_node:curr_parent;
+    return (get_parent == S_RETRIEVE_KEY_NODE)? curr_node:curr_parent;
 }
 
 int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_tree_node *restrict dict, 
@@ -164,17 +174,71 @@ static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tre
     return search_node(dict, node->avl_key, S_RETRIEVE_KEY_NODE_PARENT);
 }
 
-static inline struct avl_bs_tree_node *left_rotation(struct avl_bs_tree_node *restrict node)
+static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict,
+                             enum rotation_type rotation)
 {
-    return NULL;
+    struct avl_bs_tree_node *node_A = src;
+    struct avl_bs_tree_node *node_B = (rotation == LL_ROTATION)? node_A->avl_left:node_A->avl_right;
+    struct avl_bs_tree_node *parent_A = get_ancestor_node(node_A, *dict);
+
+    int compare_keys = strcmp(node_A->avl_key, parent_A->avl_key);
+
+    // (1), (2). Replace A with B and update the linkage.
+    if (T_NODE_IS_LEFT(compare_keys)) {
+        parent_A->avl_left = node_B;
+    } else if (T_NODE_IS_RIGHT(compare_keys)) {
+        parent_A->avl_right = node_B;
+    } else {
+        // If keys are equal, then, there is no ancestor, A is the root of the whole tree.
+        // Make B the root of the whole tree.
+        *dict = node_B;
+    }
+
+    // Link the node A to the right place from B.
+    if (rotation == LL_ROTATION) {
+        node_B->avl_right = node_A;
+    } else {
+        node_B->avl_left = node_A;
+    }
 }
 
-static inline struct avl_bs_tree_node *right_rotation(struct avl_bs_tree_node *restrict node)
+static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
 {
-    return NULL;
+    /**    |            |
+     *     A            B
+     *    /           /   \
+     *   B    -->    C     A
+     *  /
+     * C
+     * Steps.
+     * 1. Replace A with B (root of the left subtree).
+     * 2. Put A on the right of B (by changing the linkage).
+     * 3. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
+     * (This comments help me visualize the tree)
+    */
+    balance_rotation(src, dict, LL_ROTATION);
 }
 
-int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_tree_node *restrict dict,
+static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    /**
+     *  |               |
+     *  A               B
+     *   \            /   \
+     *    B     -->  A     C
+     *     \
+     *      C
+     * 
+     * Steps.
+     * 1. Replace A with B (root of the right subtree).
+     * 2. Put A on the left of B.
+     * 3. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
+     * (This comments help me visualize the tree)
+    */
+    balance_rotation(src, dict, RR_ROTATION);
+}
+
+int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_tree_node *dict,
                       const char *restrict key)
 {
     // No root currently exists.
@@ -186,7 +250,8 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
 
     struct cjlib_json_data tmp;
     struct avl_bs_tree_node *parent;
-    struct avl_bs_tree_node *grand_parent;
+    struct avl_bs_tree_node *node_A;
+    struct avl_bs_tree_node *node_B;
     struct avl_bs_tree_node *new_node;
     int compare;
     int balance_factor = 0;
@@ -210,15 +275,26 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     }
 
     // Get the parent of parent.
-    grand_parent = get_ancestor_node(parent, dict);
-    balance_factor = calc_balance_factor(grand_parent);
+    node_A = get_ancestor_node(parent, dict);
+    balance_factor = calc_balance_factor(node_A);
     if (T_TREE_IS_BALANCED(balance_factor)) return 0;
-
-    if (balance_factor > T_TREE_HEIGHT_LEFT && T_NODE_IS_LEFT(compare)) {
-    } else if (balance_factor < T_TREE_HEIGHT_RIGHT && T_NODE_IS_RIGHT(compare)) {
-    } else if (balance_factor > T_TREE_HEIGHT_LEFT && T_NODE_IS_RIGHT(compare)) {
+        
+    if (T_NODE_IS_LEFT(compare) && balance_factor > T_TREE_HEIGHT_LEFT) {
+        // LL rotation.
+        ll_rotation(node_A, &dict);
+    } else if (T_NODE_IS_RIGHT(compare) && balance_factor < T_TREE_HEIGHT_RIGHT) {
+        // RR rotation.
+        rr_rotation(node_A, &dict);
+    } else if (T_NODE_IS_RIGHT(compare) && balance_factor > T_TREE_HEIGHT_LEFT) {
+        // RL (two rotations).
+        node_B = node_A->avl_left;
+        rr_rotation(node_B, &dict);
+        ll_rotation(node_A, &dict);
     } else {
-
+        // LR (two rotations).
+        node_B = node_A->avl_right;
+        ll_rotation(node_B, &dict);
+        rr_rotation(node_A, &dict);
     }
 
     return 0;

@@ -16,7 +16,7 @@ struct avl_bs_tree_node
     char *avl_key;                              // The key of the node.
     struct avl_bs_tree_node *avl_left;          // The left child of the node.
     struct avl_bs_tree_node *avl_right;         // The right child of the node.
-};      
+}; 
 
 typedef struct avl_bs_tree_node cjlib_dict;
 
@@ -48,7 +48,7 @@ extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_d
  * @param key The key to acociate this element.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict *restrict dict,
+extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict *dict,
                              const char *restrict key);
 
 /**
