@@ -147,6 +147,13 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
     return (get_parent == S_RETRIEVE_KEY_NODE)? curr_node:curr_parent;
 }
 
+/**
+ * This function search for a specific node in the AVL tree.
+ * @param dst Where to put the data of the node that is found.
+ * @param dict The root of the AVL tree.
+ * @param key The key that is acociated with the node we are searching for.
+ * @return 0 on success, otherwise -1.
+*/
 int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_tree_node *restrict dict, 
                       const char *restrict key)
 {
@@ -161,6 +168,12 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
     return 0;
 }
 
+/**
+ * This function assigns a value and is acociate it with a key.
+ * @param src The node to store the key - value pair.
+ * @param key The key to acociate with the value.
+ * @param value The value to acociate with the key.
+*/
 static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict src, const char *restrict key,
                                            const struct cjlib_json_data *restrict value)
 {
@@ -172,12 +185,26 @@ static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict src
     return 0;
 }
 
+/**
+ * This function search for the ancestor of the node given as @node.
+ * @param node The node that we want to find it's ancestor.
+ * @param dict The root of the AVL tree.
+ * @return The ancestor of @node.
+*/
 static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tree_node *restrict node,
                                                          const struct avl_bs_tree_node *restrict dict)
 {
     return search_node(dict, node->avl_key, S_RETRIEVE_KEY_NODE_PARENT);
 }
 
+/**
+ * This abstract function, is used in order to perform the two nececcery rotations of the AVL
+ * tree. 1) The LL rotation and 2) RR rotation.
+ * 
+ * @param src The node from which to perform the rotation.
+ * @param dict The root of the AVL tree.
+ * @param rotation The action to take (rotation to perform).
+*/
 static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict,
                              enum rotation_type rotation)
 {
@@ -206,6 +233,11 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
     }
 }
 
+/**
+ * This function performs an LL rotation
+ * @param src The node from which to perform the rotation.
+ * @param dict The root of the AVL tree.
+*/
 static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
 {
     /**    |            |
@@ -223,6 +255,11 @@ static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_
     balance_rotation(src, dict, LL_ROTATION);
 }
 
+/**
+ * This function performs an RR rotation
+ * @param src The node from which to perform the rotation.
+ * @param dict The root of the AVL tree.
+*/
 static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     /**
@@ -242,6 +279,65 @@ static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl
     balance_rotation(src, dict, RR_ROTATION);
 }
 
+/**
+ * This function performs an RL rotation
+ * @param src The node from which to perform the rotation.
+ * @param dict The root of the AVL tree.
+*/
+static inline void rl_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
+{
+    struct avl_bs_tree_node *node_A = src;
+    struct avl_bs_tree_node *node_B = node_A->avl_left;
+    rr_rotation(node_B, dict);
+    ll_rotation(node_A, dict);
+}
+
+/**
+ * This function performs an LR rotation
+ * @param src The node from which to perform the rotation.
+ * @param dict The root of the AVL tree.
+*/
+static inline void lr_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    struct avl_bs_tree_node *node_A = src;
+    struct avl_bs_tree_node *node_B = node_A->avl_right;
+    ll_rotation(node_B, dict);
+    rr_rotation(node_A, dict);
+}
+
+/**
+ * This function performs the rotation that is required after an instertion, in order
+ * to make the tree balanced again.
+ * @param new_node_parent The parent of the newly inserted node.
+ * @param dict The root of the AVL tree.
+ * @param compared_keys The comparison between the new node and it's parent (we need it in order to know if the new node
+ * is stored at left or at right of the parent).
+*/
+static inline void perform_rotation_after_insert(struct avl_bs_tree_node *restrict new_node_parent, 
+                                                 struct avl_bs_tree_node *dict, int comopared_keys)
+{
+    struct avl_bs_tree_node *node_A;
+    int balance_factor;
+    // Get the parent of parent.
+    node_A = get_ancestor_node(new_node_parent, dict);
+    balance_factor = calc_balance_factor(node_A);
+    if (T_TREE_IS_BALANCED(balance_factor)) return;
+    
+    if (T_NODE_IS_LEFT(comopared_keys) && T_IMBALANCE_ON_LEFT(balance_factor)) {
+        // LL rotation.
+        ll_rotation(node_A, &dict);
+    } else if (T_NODE_IS_RIGHT(comopared_keys) && T_IMBALANCE_ON_RIGHT(balance_factor)) {
+        // RR rotation.
+        rr_rotation(node_A, &dict);
+    } else if (T_NODE_IS_RIGHT(comopared_keys) && T_IMBALANCE_ON_LEFT(balance_factor)) {
+        // RL (two rotations).
+        rl_rotation(node_A, &dict);
+    } else {
+        // LR (two rotations).
+        lr_rotation(node_A, &dict);
+    }
+}
+
 int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_tree_node *dict,
                       const char *restrict key)
 {
@@ -254,11 +350,8 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
 
     struct cjlib_json_data tmp;
     struct avl_bs_tree_node *parent;
-    struct avl_bs_tree_node *node_A;
-    struct avl_bs_tree_node *node_B;
     struct avl_bs_tree_node *new_node;
     int compare;
-    int balance_factor = 0;
     // A node with this key, already exists.
     if (0 == cjlib_dict_search(&tmp, dict, key)) return -1;
     // Retrieve the node that will be the parent of node that holds the key.
@@ -277,29 +370,7 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     } else {
         parent->avl_left = new_node;
     }
-
-    // Get the parent of parent.
-    node_A = get_ancestor_node(parent, dict);
-    balance_factor = calc_balance_factor(node_A);
-    if (T_TREE_IS_BALANCED(balance_factor)) return 0;
-        
-    if (T_NODE_IS_LEFT(compare) && T_IMBALANCE_ON_LEFT(balance_factor)) {
-        // LL rotation.
-        ll_rotation(node_A, &dict);
-    } else if (T_NODE_IS_RIGHT(compare) && T_IMBALANCE_ON_RIGHT(balance_factor)) {
-        // RR rotation.
-        rr_rotation(node_A, &dict);
-    } else if (T_NODE_IS_RIGHT(compare) && T_IMBALANCE_ON_LEFT(balance_factor)) {
-        // RL (two rotations).
-        node_B = node_A->avl_left;
-        rr_rotation(node_B, &dict);
-        ll_rotation(node_A, &dict);
-    } else {
-        // LR (two rotations).
-        node_B = node_A->avl_right;
-        ll_rotation(node_B, &dict);
-        rr_rotation(node_A, &dict);
-    }
+    perform_rotation_after_insert(parent, dict, compare);
 
     return 0;
 }
