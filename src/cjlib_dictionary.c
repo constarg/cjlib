@@ -30,6 +30,10 @@
 #define T_NODE_IS_LEFT(COMP)  COMP < 0
 #define T_NODE_IS_RIGHT(COMP) COMP > 0
 
+// Determine if the imbalance of the tree is on the right or left subtree.
+#define T_IMBALANCE_ON_LEFT(B_FACTOR) (B_FACTOR > T_TREE_HEIGHT_LEFT)
+#define T_IMBALANCE_ON_RIGHT(B_FACTOR) (B_FACTOR < T_TREE_HEIGHT_RIGHT)
+
 /**
  * Which type of rotation must be executed
  * on the imbalanced tree.
@@ -279,13 +283,13 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     balance_factor = calc_balance_factor(node_A);
     if (T_TREE_IS_BALANCED(balance_factor)) return 0;
         
-    if (T_NODE_IS_LEFT(compare) && balance_factor > T_TREE_HEIGHT_LEFT) {
+    if (T_NODE_IS_LEFT(compare) && T_IMBALANCE_ON_LEFT(balance_factor)) {
         // LL rotation.
         ll_rotation(node_A, &dict);
-    } else if (T_NODE_IS_RIGHT(compare) && balance_factor < T_TREE_HEIGHT_RIGHT) {
+    } else if (T_NODE_IS_RIGHT(compare) && T_IMBALANCE_ON_RIGHT(balance_factor)) {
         // RR rotation.
         rr_rotation(node_A, &dict);
-    } else if (T_NODE_IS_RIGHT(compare) && balance_factor > T_TREE_HEIGHT_LEFT) {
+    } else if (T_NODE_IS_RIGHT(compare) && T_IMBALANCE_ON_LEFT(balance_factor)) {
         // RL (two rotations).
         node_B = node_A->avl_left;
         rr_rotation(node_B, &dict);
