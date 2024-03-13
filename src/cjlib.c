@@ -23,18 +23,21 @@ int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_j
     return 0;
 }
 
-int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_path)
+int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_path,
+                    const char *restrict modes)
 {
-    // Initialize the dictionary or the json
-    // Recieve a file descriptor, for the file in the json_path.
+    FILE *fp = fopen(json_path, modes);
+    if (NULL == fp) return -1;
+
+    dst->c_fp = fp;
+    cjlib_dict_init(&dst->c_dict);
     return 0;
 }
 
-int cjlib_json_close(const struct cjlib_json *restrict src)
+void cjlib_json_close(const struct cjlib_json *restrict src)
 {
-    // Destroy the dicionary
-    // Close the file with the file descriptor
-    return 0;
+    cjlib_dict_destroy((cjlib_dict *) &src->c_dict);
+    fclose(src->c_fp);
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
@@ -46,7 +49,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
 char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
 {
-
+    return NULL;
 }
 
 int cjlib_json_dump(const struct cjlib_json *restrict src)

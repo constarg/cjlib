@@ -6,29 +6,27 @@
 #include <memory.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "cjlib_dictionary.h"
 
 typedef int cjlib_json_num;
 typedef bool cjlib_json_bool;
 
-typedef int cjlib_json_fd;
+typedef FILE *cjlib_json_fd;
 typedef cjlib_dict cjlib_json_object;
 
 // Some useful macros.
 // Retreive the number which is inside the data.
-#define CJLIB_GET_NUMBER(CJLIB_DATA) CJLIB_DATA.c_datatype_value.c_num
+#define CJLIB_GET_NUMBER(CJLIB_DATA) CJLIB_DATA.c_value.c_num
 // Retreive the string which is inside the data.
-#define CJLIB_GET_STRING(CJLIB_DATA) CJLIB_DATA.c_datatype_value.c_str
+#define CJLIB_GET_STRING(CJLIB_DATA) CJLIB_DATA.c_value.c_str
 // Retreive the boolean which is inside the data.
-#define CJLIB_GET_BOOL(CJLIB_DATA)   CJLIB_DATA.c_datatype_value.c_boolean
+#define CJLIB_GET_BOOL(CJLIB_DATA)   CJLIB_DATA.c_value.c_boolean
 // Retreive the object which is inside the data.
-#define CJLIB_GET_OBJ(CJLIB_DATA)    CJLIB_DATA.c_datatype_value.c_obj
+#define CJLIB_GET_OBJ(CJLIB_DATA)    CJLIB_DATA.c_value.c_obj
 // Retreive the Array which is inside the data.
-#define CJLIB_GET_ARR(CJLIB_DATA)    CJLIB_DATA.c_datatype_value.c_arr
-
-// Retreive the type which is inside the data.
-#define CJLIB_GET_TYPE(CJLIB_DATA) CJLIB_DATA.c_datatype
+#define CJLIB_GET_ARR(CJLIB_DATA)    CJLIB_DATA.c_value.c_arr
 
 /**
  * The available datatypes, that json support.
@@ -47,7 +45,7 @@ enum cjlib_json_datatypes
 */
 struct cjlib_json
 {
-    cjlib_json_fd c_fd;        // The file descriptor of the json file.
+    cjlib_json_fd c_fp;        // The file pointer of the json file.
     cjlib_json_object c_dict;  // The dictionary that contains the values of the json.
 };
 
@@ -70,7 +68,7 @@ union cjlib_json_data_disting
 */
 struct cjlib_json_data
 {
-    union cjlib_json_data_disting c_datatype_value;
+    union cjlib_json_data_disting c_value;
     enum cjlib_json_datatypes c_datatype;
 };
 
@@ -189,13 +187,14 @@ static inline int cjlib_json_remove(struct cjlib_json_data *restrict dst, const 
  * @param json_path The path to the json file of interest.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_path);
+extern int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_path, 
+                           const char *restrict modes);
 
 /**
  * This function close a json file.
  * @param src The json object acociated with the open file.
 */
-extern int cjlib_json_close(const struct cjlib_json *restrict src);
+extern void cjlib_json_close(const struct cjlib_json *restrict src);
 
 /**
  * This function read's the contents of a json file.

@@ -5,15 +5,14 @@
 #include <memory.h>
 #include <stdlib.h>
 
-#include "cjlib_dictionary.h"
-#include "cjlib.h"
+struct cjlib_json_data;
 
 /**
  * AVL Binary search tree node.
 */
 struct avl_bs_tree_node
 {
-    struct cjlib_json_data *avl_data;   // The data that the node holds.
+    struct cjlib_json_data *avl_data;           // The data that the node holds.
     char *avl_key;                              // The key of the node.
     struct avl_bs_tree_node *avl_left;          // The left child of the node.
     struct avl_bs_tree_node *avl_right;         // The right child of the node.

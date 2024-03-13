@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "cjlib_dictionary.h"
+#include "cjlib.h"
 #include "cjlib_queue.h"
 
 // Those constants are used in the search/insert/delete functions.
@@ -21,8 +22,13 @@
 #define T_DELETE_NODES      0x1
 
 // Those macros are used to determine if the AVL is balanced.
-#define T_TREE_BALANCED_HEIGH 0x1
-#define T_TREE_IS_BALANCED(BALANCE_FACTOR) BALANCE_FACTOR <= T_TREE_BALANCED_HEIGH
+#define T_TREE_HEIGHT_LEFT   0x1
+#define T_TREE_HEIGHT_RIGHT -0x1
+#define T_TREE_IS_BALANCED(B_FACTOR) (B_FACTOR <= T_TREE_HEIGHT_LEFT && B_FACTOR >= T_TREE_HEIGHT_RIGHT)
+
+// Determine the direction of a node.
+#define T_NODE_IS_LEFT(COMP)  COMP < 0
+#define T_NODE_IS_RIGHT(COMP) COMP > 0
 
 /**
  * This function calculate the height of a tree/subtree using
@@ -46,13 +52,16 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *restrict src, b
     struct avl_bs_tree_node *tmp = NULL;
     size_t current_lvl = 0;
 
-    if (0 != cjlib_queue_enquue(src, &lvl_traversal_q)) return -1;
+    if (0 != cjlib_queue_enqeue(src, &lvl_traversal_q)) return -1;
 
     while (!cjlib_queue_is_empty(&lvl_traversal_q)) {
-        if (delete_nodes) free(tmp); 
+        if (delete_nodes) {
+            free(tmp->avl_data);
+            free(tmp);
+        }
         // NO if - statement needed to ensure that left or right child is NULL,
         // cause the queue will reject any NULL source.
-        for (int i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
+        for (size_t i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
             cjlib_queue_deqeue(tmp, &lvl_traversal_q);
             if (0 != cjlib_queue_enqeue(tmp->avl_left, &lvl_traversal_q)) return -1;   
             if (0 != cjlib_queue_enqeue(tmp->avl_right, &lvl_traversal_q)) return -1;
@@ -85,7 +94,7 @@ static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict sr
     int right_subtree_h = get_node_height(src->avl_right);
 
     // Calculate the balance factor.
-    return (int) abs(left_subtree_h - right_subtree_h);
+    return (int) left_subtree_h - right_subtree_h;
 }
 
 /**
@@ -106,8 +115,8 @@ static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict sr
 static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict, const char *restrict key, 
                                             bool get_parent)
 {
-    struct avl_bs_tree_node *curr_node = dict;
-    struct avl_bs_tree_node *curr_parent = dict;
+    struct avl_bs_tree_node *curr_node = (struct avl_bs_tree_node *) dict;
+    struct avl_bs_tree_node *curr_parent = (struct avl_bs_tree_node *) dict;
     int compare_key = 0;
     while (curr_node) {
         compare_key = strcmp(key, curr_node->avl_key);
@@ -138,49 +147,92 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
     return 0;
 }
 
+static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict src, const char *restrict key,
+                                           const struct cjlib_json_data *restrict value)
+{
+    src->avl_key  = (char *) key;
+    src->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
+    if (NULL == src->avl_data) return -1;
+
+    (void)memcpy(src->avl_data, value, sizeof(struct cjlib_json_data));
+    return 0;
+}
+
+static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tree_node *restrict node,
+                                                         const struct avl_bs_tree_node *restrict dict)
+{
+    return search_node(dict, node->avl_key, S_RETRIEVE_KEY_NODE_PARENT);
+}
+
+static inline struct avl_bs_tree_node *left_rotation(struct avl_bs_tree_node *restrict node)
+{
+    return NULL;
+}
+
+static inline struct avl_bs_tree_node *right_rotation(struct avl_bs_tree_node *restrict node)
+{
+    return NULL;
+}
+
 int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_tree_node *restrict dict,
                       const char *restrict key)
 {
+    // No root currently exists.
+    if (NULL == dict->avl_key || NULL == dict->avl_data) {
+        dict->avl_left = dict->avl_right = NULL;
+        if (-1 == assign_key_value_to_node(dict, key, src)) return -1;
+        return 0;
+    }
+
     struct cjlib_json_data tmp;
-    struct avl_bs_tree_node *parent_node;
+    struct avl_bs_tree_node *parent;
+    struct avl_bs_tree_node *grand_parent;
     struct avl_bs_tree_node *new_node;
     int compare;
+    int balance_factor = 0;
     // A node with this key, already exists.
-    if (-1 == cjlib_dict_search(&tmp, dict, key)) return -1;
+    if (0 == cjlib_dict_search(&tmp, dict, key)) return -1;
     // Retrieve the node that will be the parent of node that holds the key.
-    parent_node = search_node(dict, key, S_RETRIEVE_KEY_NODE_PARENT);
+    parent = search_node(dict, key, S_RETRIEVE_KEY_NODE_PARENT);
 
     // Make the new node.
     new_node = (struct avl_bs_tree_node *) malloc(sizeof(struct avl_bs_tree_node));
+    if (NULL == new_node) return -1;
     cjlib_dict_init(new_node);
 
-    new_node->avl_key = key;
-    (void)memcpy(&new_node->avl_data, src, sizeof(struct cjlib_json_data));
-
+    if (-1 == assign_key_value_to_node(new_node, key, src)) return -1;
     // Decide where to put the new node.
-    compare = strcmp(key, parent_node->avl_key);
-    if (compare > 0) {
-        parent_node->avl_right = new_node;
+    compare = strcmp(key, parent->avl_key);
+    if (T_NODE_IS_RIGHT(compare)) {
+        parent->avl_right = new_node;
     } else {
-        parent_node->avl_left = new_node;
+        parent->avl_left = new_node;
     }
 
-    // AFTER INSERTION
-    if (T_TREE_IS_BALANCED(calc_balance_factor(dict))) {
-        // OK
+    // Get the parent of parent.
+    grand_parent = get_ancestor_node(parent, dict);
+    balance_factor = calc_balance_factor(grand_parent);
+    if (T_TREE_IS_BALANCED(balance_factor)) return 0;
+
+    if (balance_factor > T_TREE_HEIGHT_LEFT && T_NODE_IS_LEFT(compare)) {
+    } else if (balance_factor < T_TREE_HEIGHT_RIGHT && T_NODE_IS_RIGHT(compare)) {
+    } else if (balance_factor > T_TREE_HEIGHT_LEFT && T_NODE_IS_RIGHT(compare)) {
     } else {
-        // Not ok, the tree is not balanced.
+
     }
+
+    return 0;
 }
 
 int cjlib_dict_remove(struct avl_bs_tree_node *dict, const char *restrict key)
 {
+    // TODO - do not forget to free the space that the cjlib_json_data allocate
+
     // AFTER DELETION
-    if (T_TREE_IS_BALANCED(calc_balance_factor(dict))) {
-        // OK
-    } else {
-        // Not ok, the tree is not balanced.
-    }
+    if (!T_TREE_IS_BALANCED(calc_balance_factor(dict))) {
+        // NOT BALANCED
+    } 
+    return 0;
 }
 
 size_t cjlib_dict_destroy(cjlib_dict *dict)
