@@ -12,16 +12,17 @@ struct cjlib_json_data;
 */
 struct avl_bs_tree_node
 {
-    struct cjlib_json_data *avl_data;           // The data that the node holds.
-    char *avl_key;                              // The key of the node.
-    struct avl_bs_tree_node *avl_left;          // The left child of the node.
-    struct avl_bs_tree_node *avl_right;         // The right child of the node.
+    struct cjlib_json_data *avl_data;   // The data that the node holds.
+    char *avl_key;                      // The key of the node.
+    struct avl_bs_tree_node *avl_left;  // The left child of the node.
+    struct avl_bs_tree_node *avl_right; // The right child of the node.
 }; 
 
 typedef struct avl_bs_tree_node cjlib_dict;
 
 /**
  * initialize the dictionary.
+ * 
  * @param src The dictionary to initialize.
 */
 static inline void cjlib_dict_init(cjlib_dict *restrict src)
@@ -30,32 +31,33 @@ static inline void cjlib_dict_init(cjlib_dict *restrict src)
 }
 
 /**
- * This function search for an element that has an acociated key equal to 'key'.
+ * Searches for an element in a dictionary based on its associated key.
  * 
- * @param dst Where to put the result of the search.
- * @param dict The dictionary.
- * @param key The key that is acociated with the element.
+ * @param dst A pointer to the memory location where the data of the found element
+ *            will be copied.
+ * @param dict A pointer to the dictionary.
+ * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict *restrict dict, 
                              const char *restrict key);
 
 /**
- * This funciton inserts a new element with key 'key' in the dictionary.
+ * Inserts a new element with the specified key into a dictionary.
  * 
- * @param src The element to insert to the dictionary.
- * @param dict The dictionary.
- * @param key The key to acociate this element.
+ * @param src A pointer to the `cjlib_json_data` structure containing the data to be inserted.
+ * @param dict  A pointer to the dictionary where the element will be added.
+ * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict *dict,
                              const char *restrict key);
 
 /**
- * This function removes an element from the dictionary, that
- * has the key 'name'
- * @param dict The dictionary.
- * @param key The key of the element.
+ * Removes an element from a CJLib dictionary based on its key.
+ * 
+ * @param dict A pointer to the dictionary from which the element will be removed.
+ * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_remove(cjlib_dict *dict, const char *restrict key);
@@ -63,8 +65,8 @@ extern int cjlib_dict_remove(cjlib_dict *dict, const char *restrict key);
 /**
  * This function free's the space of all the nodes in the
  * AVL tree.
- * @param dict A pointer to the dictionary to delete.
- * @return The height of the dictinary (a feature that came as after affect due to the implemantation)
+ * @param dict A pointer to the dictionary.
+ * @return The height of the dictinary (a feature that came as after affect due to the implemantation).
 */
 extern size_t cjlib_dict_destroy(cjlib_dict *dict);
 

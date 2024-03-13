@@ -62,10 +62,8 @@ union cjlib_json_data_disting
 };
 
 /**
- * This structure is a supportive structure which is
- * used in order to know what datatype is chosed
- * from the available options on the union, cjlib_json_datatype.
-*/
+ * This structure represents the data retrieved or stored from a JSON file.
+ */
 struct cjlib_json_data
 {
     union cjlib_json_data_disting c_value;
@@ -82,26 +80,16 @@ static inline void cjlib_json_object_init(cjlib_json_object *restrict src)
     cjlib_dict_init(src);
 }
 
-/**
- * @param src The datatype to initialize. 
-*/
 static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
 {
     (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
 }
 
-/**
- * @param size The number of elements of the array.
- * @return A pointer to the newly created array on success. On error NULL.
-*/
 static inline struct cjlib_json_data *cjlib_json_make_array(size_t size) 
 {
     return (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data) * size);
 }
 
-/**
- * @param src The array to be freed.
-*/
 static inline void cjlib_json_free_array(struct cjlib_json_data *src)
 {
     free(src);
@@ -110,6 +98,7 @@ static inline void cjlib_json_free_array(struct cjlib_json_data *src)
 /**
  * This function acociates a key (string) to a value and set this combination key - value
  * to a json object.
+ * 
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates the value with it.
  * @param value The value to acociate with the key.

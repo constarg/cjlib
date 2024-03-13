@@ -45,14 +45,19 @@ enum rotation_type
 };
 
 /**
- * This function calculate the height of a tree/subtree using
- * the lvl order traversal method combined with a queue. Also, 
- * it free's the memory of each tree node, if delete_nodes flag is set
- * to true.
- * 
- * @param src The subtree of interest.
- * @param delete_nodes If this flag is true, then we free the space during the traverasal of the tree.
- * @returns The height of the subree.
+ * Calculates the height of a tree/subtree using level-order traversal and frees memory (optional).
+ *
+ * This function employs a level-order traversal approach combined with a queue to
+ * determine the height of the provided subtree (`src`). Additionally, it offers the
+ * option to free the memory allocated for each traversed node if the `delete_nodes`
+ * flag is set to true.
+ *  
+ * @param src A pointer to the root node of the subtree whose height needs to be calculated.
+ * @param delete_nodes A boolean flag indicating whether to deallocate memory
+ *                      for visited nodes during the traversal:
+ *                      - True: Frees memory for each visited node.
+ *                      - False: Does not free memory.
+ * @returns The integer value representing the height of the subtree.
 */
 static size_t lvl_order_traversal(const struct avl_bs_tree_node *restrict src, bool delete_nodes)
 {
@@ -88,7 +93,8 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *restrict src, b
 
 /**
  * This function returns the height of a subtree.
- * @param src A pointer that ponits to the root of the subtree.
+ * 
+ * @param src A pointer that points to the root of the subtree.
  * @returns The height of this subtree.
 */
 static inline size_t get_node_height(const struct avl_bs_tree_node *restrict src) 
@@ -97,9 +103,13 @@ static inline size_t get_node_height(const struct avl_bs_tree_node *restrict src
 }
 
 /**
- * This function calculate the balance factor of a binary search tree.
- * @param src A pointer that points to the AVL tree of interest
- * @return An integer that represent the ballance factor of the AVL tree.
+ * Calculates the balance factor of a node in an AVL tree.
+ * 
+ * @param src A pointer to the node in the AVL tree for which to calculate the balance factor.
+ * @return An integer representing the balance factor of the node:
+ *         - Positive value: The left subtree is taller.
+ *         - Negative value: The right subtree is taller.
+ *         - 0: The subtrees have the same height.
 */
 static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict src)
 {
@@ -112,19 +122,20 @@ static inline int calc_balance_factor(const struct avl_bs_tree_node *restrict sr
 }
 
 /**
- * This function searches for a node that is equal to the parameter @key
- * and if there is a node with such a key, it returns a pointer to the 
- * coresponded node in the AVL tree. If parameter @get_parent is true, then
- * instead of returning the node that is equal to the key, it returns the parent
- * of this node.
+ * Retrieves a node with a specific key or its parent from an AVL tree.
+ *
+ * This function searches the AVL tree pointed to by `dict` for a node whose key
+ * matches the provided `key`. Depending on the value of `get_parent`, it
+ * returns either the node itself or its parent.
  * 
- * @param dict A pointer to the dictionary of interest.
- * @param key The key of interest.
- * @param get_parent If true, retrieves the parent of the node that owns the key of interest.
- * @returns A pointer to the AVL node that holds the key of interest, if get_parent is false. A pointer
- *          to the AVL node that is parent to the node that holds the key of interest if get_parent is true.
- *          Otherwise NULL.
- * 
+ * @param dict A pointer to the root node of the AVL tree to search.
+ * @param key A pointer to a constant character string representing the key.
+ * @param get_parent A boolean flag indicating whether to retrieve the parent or the node itself.
+ * @returns A pointer to either:
+ *          - The node that holds the key, if `get_parent` is false and a match is found.
+ *          - The parent of the node that holds the key, if `get_parent` is true and a match is found.
+ *          - The last encountered parent during the search, if `get_parent` is true
+ *            and no node with the specified key exists. 
 */
 static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict, const char *restrict key, 
                                             bool get_parent)
@@ -148,10 +159,11 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
 }
 
 /**
- * This function search for a specific node in the AVL tree.
- * @param dst Where to put the data of the node that is found.
+ * Searches for a node with a specific key in an AVL tree.
+ * 
+ * @param dst A pointer to the memory location where the data of the found node will be copied.
  * @param dict The root of the AVL tree.
- * @param key The key that is acociated with the node we are searching for.
+ * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, otherwise -1.
 */
 int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_tree_node *restrict dict, 
@@ -169,27 +181,33 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
 }
 
 /**
- * This function assigns a value and is acociate it with a key.
- * @param src The node to store the key - value pair.
- * @param key The key to acociate with the value.
- * @param value The value to acociate with the key.
+ * Assigns a value to a specified key within an AVL tree node.
+ *
+ * This function associates a given `value` with the provided `key` and stores them
+ * together within the `src` node.
+ * 
+ * @param dst A pointer to the node where the key-value pair will be stored.
+ * @param key A pointer to a constant character string representing the key.
+ * @param value A pointer to a structure containing the data to be associated with the `key`.
+ * @return 0 on success, otherwise -1.
 */
-static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict src, const char *restrict key,
+static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict dst, const char *restrict key,
                                            const struct cjlib_json_data *restrict value)
 {
-    src->avl_key  = (char *) key;
-    src->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
-    if (NULL == src->avl_data) return -1;
+    dst->avl_key  = (char *) key;
+    dst->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
+    if (NULL == dst->avl_data) return -1;
 
     (void)memcpy(src->avl_data, value, sizeof(struct cjlib_json_data));
     return 0;
 }
 
 /**
- * This function search for the ancestor of the node given as @node.
- * @param node The node that we want to find it's ancestor.
- * @param dict The root of the AVL tree.
- * @return The ancestor of @node.
+ * Finds the nearest ancestor of a given node in an AVL tree.
+ * 
+ * @param node A pointer to the node for which to find the ancestor.
+ * @param dict A pointer to the root node of the AVL tree.
+ * @return A pointer to the ancestor node of `node`, or it's self (if there is not ancestor).
 */
 static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tree_node *restrict node,
                                                          const struct avl_bs_tree_node *restrict dict)
@@ -198,13 +216,21 @@ static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tre
 }
 
 /**
- * This abstract function, is used in order to perform the two nececcery rotations of the AVL
- * tree. 1) The LL rotation and 2) RR rotation.
- * 
- * @param src The node from which to perform the rotation.
- * @param dict The root of the AVL tree.
- * @param rotation The action to take (rotation to perform).
-*/
+ * Performs either a left-left (LL) or right-right (RR) rotation in an AVL tree.
+ *
+ * This function is used to maintain balance within an AVL tree. It takes a node
+ * (`src`) as input, along with the current root of the tree (`dict`). Based on the
+ * specified rotation type (`rotation`), it performs either a left-left (LL) rotation
+ * or a right-right (RR) rotation around `src`. The function may update the root
+ * pointer (`dict`) to reflect the new root after the rotation.
+ *
+ * @param src A pointer to the node to be rotated around.
+ * @param dict A pointer to a pointer to the root node of the AVL tree. This value
+ *              may be updated by the function.
+ * @param rotation The type of rotation to perform:
+ *                 - `ROTATE_LEFT`: Perform a left-left (LL) rotation.
+ *                 - `ROTATE_RIGHT`: Perform a right-right (RR) rotation.
+ */
 static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict,
                              enum rotation_type rotation)
 {
@@ -234,10 +260,14 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
 }
 
 /**
- * This function performs an LL rotation
- * @param src The node from which to perform the rotation.
- * @param dict The root of the AVL tree.
-*/
+ * Performs a left-left (LL) rotation in an AVL tree.
+ *
+ * This function adjusts the tree structure around the provided node (`src`)
+ * to maintain the AVL tree's balance property.
+ *
+ * @param src  A pointer to the node to be rotated around.
+ * @param dict A pointer to a pointer to the root node of the AVL tree.
+ */
 static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
 {
     /**    |            |
@@ -256,10 +286,14 @@ static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_
 }
 
 /**
- * This function performs an RR rotation
- * @param src The node from which to perform the rotation.
- * @param dict The root of the AVL tree.
-*/
+ * Performs a right-right (RR) rotation in an AVL tree.
+ *
+ * This function adjusts the tree structure around the provided node (`src`)
+ * to maintain the AVL tree's balance property.
+ *
+ * @param src  A pointer to the node to be rotated around.
+ * @param dict A pointer to a pointer to the root node of the AVL tree.
+ */
 static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     /**
@@ -280,10 +314,14 @@ static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl
 }
 
 /**
- * This function performs an RL rotation
- * @param src The node from which to perform the rotation.
- * @param dict The root of the AVL tree.
-*/
+ * Performs a right-left (RL) rotation in an AVL tree.
+ *
+ * This function adjusts the tree structure around the provided node (`src`)
+ * to maintain the AVL tree's balance property.
+ *
+ * @param src  A pointer to the node to be rotated around.
+ * @param dict A pointer to a pointer to the root node of the AVL tree.
+ */
 static inline void rl_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
 {
     struct avl_bs_tree_node *node_A = src;
@@ -293,10 +331,14 @@ static inline void rl_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_
 }
 
 /**
- * This function performs an LR rotation
- * @param src The node from which to perform the rotation.
- * @param dict The root of the AVL tree.
-*/
+ * Performs a left-right (LR) rotation in an AVL tree.
+ *
+ * This function adjusts the tree structure around the provided node (`src`)
+ * to maintain the AVL tree's balance property.
+ *
+ * @param src  A pointer to the node to be rotated around.
+ * @param dict A pointer to a pointer to the root node of the AVL tree.
+ */
 static inline void lr_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     struct avl_bs_tree_node *node_A = src;
@@ -306,12 +348,11 @@ static inline void lr_rotation(struct avl_bs_tree_node *restrict src, struct avl
 }
 
 /**
- * This function performs the rotation that is required after an instertion, in order
- * to make the tree balanced again.
- * @param new_node_parent The parent of the newly inserted node.
- * @param dict The root of the AVL tree.
- * @param compared_keys The comparison between the new node and it's parent (we need it in order to know if the new node
- * is stored at left or at right of the parent).
+ * Restores the balance of an AVL tree after a node insertion.
+ * 
+ * @param new_node_parent A pointer to the parent of the newly inserted node.
+ * @param dict A pointer to the root node of the AVL tree.
+ * @param compared_keys An indicator specifying the relative position of the new node to its parent.
 */
 static inline void perform_rotation_after_insert(struct avl_bs_tree_node *restrict new_node_parent, 
                                                  struct avl_bs_tree_node *dict, int comopared_keys)

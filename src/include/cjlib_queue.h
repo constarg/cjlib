@@ -39,38 +39,36 @@ static inline void cjlib_queue_init(struct cjlib_queue *restrict src)
 }
 
 /**
- * This fucntion removes an node from the queue and returns the value that 
- * was in this node in the @param dst. After the call of this function is 
- * garanteed that the variable which has the pointer dst will have the 
- * value that corespond to the front node of the queue.
+ * Removes the front element from a queue and stores its value.
  * 
- * @param dst A pointer that points the place where the data must be stored.
- * @param qeueu A pointer to the queue of interest.
+ * @param dst A pointer to the memory location where the data from the front
+ *            element of the queue will be copied.
+ * @param queue A pointer to the queue from which to remove the front element.
 */
 extern void cjlib_queue_deqeue(struct avl_bs_tree_node *restrict dst, struct cjlib_queue *restrict queue);
 
 /**
  * This function check wether the queue is empty.
  * 
- * @param queue A pointer to the queue of interest..
+ * @param queue A pointer to the queue.
 */
 extern bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue);
 
 /**
  * This funciton determines the current size of the queue
- * @param src A pointer that points to the queue of interest
- * @return The size of that the queue given in @src.
+ * 
+ * @param src A pointer to the queue.
+ * @return The size of the queue.
 */
 extern size_t cjlib_queue_size(const struct cjlib_queue *restrict src);
 
 /**
- * This function store new data in the rear of the queue. After the call of this
- * function the data that are pointed by the @param src, will be placed in the 
- * back of the queue, rear. 
+ * Adds new data to the back (rear) of a queue.
  * 
- * @param src A pointer that points to the data to be stored.
- * @param queue A pointer to the queue of interest.
- * @return On error -1, otherwise 0.
+ * @param src A pointer to the data to be added to the back of the queue.
+ * @param queue A pointer to the queue where the data needs to be stored.
+ * @return 0 on success, othwerwise -1.
+ *
 */
 extern int cjlib_queue_enqeue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
 
