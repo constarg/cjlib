@@ -198,7 +198,7 @@ static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict dst
     dst->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
     if (NULL == dst->avl_data) return -1;
 
-    (void)memcpy(src->avl_data, value, sizeof(struct cjlib_json_data));
+    (void)memcpy(dst->avl_data, value, sizeof(struct cjlib_json_data));
     return 0;
 }
 
@@ -228,8 +228,8 @@ static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tre
  * @param dict A pointer to a pointer to the root node of the AVL tree. This value
  *              may be updated by the function.
  * @param rotation The type of rotation to perform:
- *                 - `ROTATE_LEFT`: Perform a left-left (LL) rotation.
- *                 - `ROTATE_RIGHT`: Perform a right-right (RR) rotation.
+ *                 - `LL_ROTATION`: Perform a left-left (LL) rotation.
+ *                 - `RR_ROTATION`: Perform a right-right (RR) rotation.
  */
 static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict,
                              enum rotation_type rotation)
@@ -253,9 +253,11 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
 
     // Link the node A to the right place from B.
     if (rotation == LL_ROTATION) {
+        node_A->avl_left  = node_B->avl_right;
         node_B->avl_right = node_A;
     } else {
-        node_B->avl_left = node_A;
+        node_A->avl_right = node_B->avl_left; 
+        node_B->avl_left  = node_A;
     }
 }
 
@@ -274,12 +276,13 @@ static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_
      *     A            B
      *    /           /   \
      *   B    -->    C     A
-     *  /
-     * C
+     *  / \               /
+     * C   D             D
      * Steps.
      * 1. Replace A with B (root of the left subtree).
      * 2. Put A on the right of B (by changing the linkage).
-     * 3. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
+     * 3. Put the right subtree of B on the left of A.
+     * 4. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
      * (This comments help me visualize the tree)
     */
     balance_rotation(src, dict, LL_ROTATION);
@@ -301,13 +304,14 @@ static inline void rr_rotation(struct avl_bs_tree_node *restrict src, struct avl
      *  A               B
      *   \            /   \
      *    B     -->  A     C
-     *     \
-     *      C
+     *   / \          \
+     *  D   C          D
      * 
      * Steps.
      * 1. Replace A with B (root of the right subtree).
      * 2. Put A on the left of B.
-     * 3. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
+     * 3. Put the left subtree of B on the right of A.
+     * 4. Change, if exists, the link to the ancestors, which before the rotation was linked to A.
      * (This comments help me visualize the tree)
     */
     balance_rotation(src, dict, RR_ROTATION);
@@ -383,7 +387,7 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
                       const char *restrict key)
 {
     // No root currently exists.
-    if (NULL == dict->avl_key || NULL == dict->avl_data) {
+    if (NULL == dict->avl_key) {
         dict->avl_left = dict->avl_right = NULL;
         if (-1 == assign_key_value_to_node(dict, key, src)) return -1;
         return 0;
@@ -392,7 +396,7 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     struct cjlib_json_data tmp;
     struct avl_bs_tree_node *parent;
     struct avl_bs_tree_node *new_node;
-    int compare;
+    int compare_keys;
     // A node with this key, already exists.
     if (0 == cjlib_dict_search(&tmp, dict, key)) return -1;
     // Retrieve the node that will be the parent of node that holds the key.
@@ -405,8 +409,8 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
 
     if (-1 == assign_key_value_to_node(new_node, key, src)) return -1;
     // Decide where to put the new node.
-    compare = strcmp(key, parent->avl_key);
-    if (T_NODE_IS_RIGHT(compare)) {
+    compare_keys = strcmp(key, parent->avl_key);
+    if (T_NODE_IS_RIGHT(compare_keys)) {
         parent->avl_right = new_node;
     } else {
         parent->avl_left = new_node;
@@ -416,14 +420,57 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     return 0;
 }
 
+static inline void perform_rotation_after_delete()
+{
+
+}
+
 int cjlib_dict_remove(struct avl_bs_tree_node *dict, const char *restrict key)
 {
-    // TODO - do not forget to free the space that the cjlib_json_data allocate
+    if (NULL == dict->avl_key) return 0;
 
-    // AFTER DELETION
-    if (!T_TREE_IS_BALANCED(calc_balance_factor(dict))) {
-        // NOT BALANCED
-    } 
+    struct cjlib_json_data tmp_d;
+    struct avl_bs_tree_node *parent;
+    struct avl_bs_tree_node **link_to_parent;
+    struct avl_bs_tree_node *removed;
+    struct avl_bs_tree_node *largest_key_of_left_subtree;
+    struct avl_bs_tree_node *tmp_n;
+    int compare_keys;
+    // There is no node with such a key.
+    if (-1 == cjlib_dict_search(&tmp_d, dict, key)) return -1;
+    parent = search_node(dict, key, S_RETRIEVE_KEY_NODE_PARENT);
+    compare_keys = strcmp(key, parent->avl_key);
+    // Get the link from the parent to the node to delete
+    link_to_parent = (T_NODE_IS_RIGHT(compare_keys))? &parent->avl_right:&parent->avl_left;
+    // Retrieve the node to delete from the link.
+    removed = *link_to_parent;
+
+    // Case (1), the node has no children.
+    if (NULL == remove->avl_left && NULL == removed->avl_right) {
+        // Discard the link from parent to deleted node.
+        *link_to_parent = NULL;
+    } else if (remove->avl_left && removed->avl_right) {
+        // Case (2), There two children under removed node.
+        largest_key_of_left_subtree = remove->avl_left;
+        tmp_n = remove->avl_left;
+        // Move to the largest key of the left subtree of removed node.
+        while (tmp_n) {
+            largest_key_of_left_subtree = tmp_n;
+            tmp_n = tmp_n->avl_right;
+        }
+        // Link this node with the parent.
+        *link_to_parent = largest_key_of_left_subtree;
+    } else {
+        // Case (3), There is only one child under removed node.
+        // In this case, move the link from parent to this one child.
+        *link_to_parent = (NULL != removed->avl_right)? removed->avl_right:removed->avl_left;
+    }
+
+    // TODO - make the rotation after deletion.
+
+    // Deallocate the memory of the node.
+    free(removed->avl_data);
+    free(removed);
     return 0;
 }
 
