@@ -1,5 +1,5 @@
 obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o 
-obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_queue_debug.o ./build/cjlib_dictionary_debug.o
+obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o
 
 GCC = gcc
 header_loc = -I ./include/ -I ./src/include/
@@ -32,7 +32,6 @@ debug: dir_make ${obj_files_debug}
 	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_dictionary.c -o ./build/cjlib_dictionary_debug.o
 
 dir_make:
-	mkdir -p ./bin/
 	mkdir -p ./build/
 	mkdir -p ./lib/
 

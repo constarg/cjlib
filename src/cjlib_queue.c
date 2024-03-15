@@ -5,13 +5,13 @@
 #include "cjlib_queue.h"
 #include "cjlib_dictionary.h"
 
-void cjlib_queue_deqeue(struct avl_bs_tree_node *restrict dst, struct cjlib_queue *restrict queue)
+void cjlib_queue_deqeue(struct avl_bs_tree_node **restrict dst, struct cjlib_queue *restrict queue)
 {
     if (NULL == queue->front) return;
 
     struct cjlib_queue_node *tmp = queue->front;
     queue->front = tmp->next;
-    (void)memcpy(dst, &tmp->data, sizeof(struct avl_bs_tree_node));
+    (void)memcpy((void *) dst, &tmp->data, sizeof(struct avl_bs_tree_node *));
     free(tmp);
 }
 
@@ -34,15 +34,15 @@ size_t cjlib_queue_size(const struct cjlib_queue *restrict src)
     return q_size;
 }
 
-int cjlib_queue_enqueue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue)
+int cjlib_queue_enqeue(const struct avl_bs_tree_node **restrict src, struct cjlib_queue *restrict queue)
 {
-    if (NULL == src) return 0;
+    if (NULL == *src) return 0;
 
     struct cjlib_queue_node *new_node = (struct cjlib_queue_node *) malloc(sizeof(struct cjlib_queue_node));
     if (NULL == new_node) return -1;
 
     new_node->next = NULL;
-    (void)memcpy(&new_node->data, src, sizeof(struct avl_bs_tree_node));
+    (void)memcpy(&new_node->data, (void *) src, sizeof(struct avl_bs_tree_node *));
 
     if (NULL == queue->front) {
         queue->front = new_node;

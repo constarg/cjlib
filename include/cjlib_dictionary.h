@@ -31,6 +31,18 @@ static inline void cjlib_dict_init(cjlib_dict *restrict src)
 }
 
 /**
+ * Create a new dictionary
+*/
+static inline cjlib_dict *cjlib_make_dict(void) 
+{
+    return (cjlib_dict *) malloc(sizeof(cjlib_dict));
+}
+
+// TODO - !! Remove this !! for debug purpose only.
+extern void get_height(cjlib_dict *restrict src);
+
+
+/**
  * Searches for an element in a dictionary based on its associated key.
  * 
  * @param dst A pointer to the memory location where the data of the found element
@@ -50,7 +62,7 @@ extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_d
  * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict *dict,
+extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict **dict,
                              const char *restrict key);
 
 /**

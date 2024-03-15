@@ -13,7 +13,7 @@
 */
 struct cjlib_queue_node 
 {
-    struct avl_bs_tree_node data;
+    struct avl_bs_tree_node *data;
     struct cjlib_queue_node *next;
 };
 
@@ -45,7 +45,7 @@ static inline void cjlib_queue_init(struct cjlib_queue *restrict src)
  *            element of the queue will be copied.
  * @param queue A pointer to the queue from which to remove the front element.
 */
-extern void cjlib_queue_deqeue(struct avl_bs_tree_node *restrict dst, struct cjlib_queue *restrict queue);
+extern void cjlib_queue_deqeue(struct avl_bs_tree_node **restrict dst, struct cjlib_queue *restrict queue);
 
 /**
  * This function check wether the queue is empty.
@@ -70,6 +70,6 @@ extern size_t cjlib_queue_size(const struct cjlib_queue *restrict src);
  * @return 0 on success, othwerwise -1.
  *
 */
-extern int cjlib_queue_enqeue(const struct avl_bs_tree_node *restrict src, struct cjlib_queue *restrict queue);
+extern int cjlib_queue_enqeue(const struct avl_bs_tree_node **restrict src, struct cjlib_queue *restrict queue);
 
 #endif

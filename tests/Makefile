@@ -1,8 +1,8 @@
 
-librareis_producation = ../lib/lib_cjlib.a
-librareis_debug = ../lib/lib_cjlib_debug.a
+librareis_producation = ../lib/libcjlib.a
+librareis_debug = ../lib/libcjlib_debug.a
 
-header_loc = -I ../include/
+header_loc = -I ../include/ -I ../src/include/
 GCC = gcc
 c_production_flags = -O3 -Wall -Werror -Wpedantic -Wnull-dereference -Wextra -Wunreachable-code -Wpointer-arith -Wmissing-include-dirs -Wstrict-prototypes -Wunused-result -Waggregate-return -Wredundant-decls
 c_debug_flags = -g -Wall -Wpedantic -Wnull-dereference -Wextra -Wunreachable-code -Wpointer-arith -Wmissing-include-dirs -Wstrict-prototypes -Wunused-result -Waggregate-return -Wredundant-decls
