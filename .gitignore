@@ -59,3 +59,4 @@ lib/
 tests/build/
 tests/bin/
 
+vgcore.*

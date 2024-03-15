@@ -248,7 +248,6 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
     struct avl_bs_tree_node *node_A = src;
     struct avl_bs_tree_node *node_B = (rotation == LL_ROTATION)? node_A->avl_left:node_A->avl_right;
     struct avl_bs_tree_node *parent_A = get_ancestor_node(node_A, *dict);
-    struct avl_bs_tree_node tmp;
 
     // TODO - !! Remove this !! for debug purpose only.
     assert(parent_A != NULL);
@@ -368,16 +367,16 @@ static inline void lr_rotation(struct avl_bs_tree_node *restrict src, struct avl
 }
 
 /**
- * Restores the balance of an AVL tree after a node insertion.
- * 
- * @param new_node_parent A pointer to the parent of the newly inserted node.
- * @param dict A pointer to the root node of the AVL tree.
- * @param compared_keys An indicator specifying the relative position of the new node to its parent.
+ * Find the node A and store it in dst.
+ * @param dst Where to store the balance factor.
+ * @param parent The parent of the node that had inserted/deleted.
+ * @param dict The dictionary.
+ * @return A pointer to the Node A
 */
-static inline void perform_rotation_after_insert(struct avl_bs_tree_node *new_node_parent, 
-                                                 struct avl_bs_tree_node **dict, int comopared_keys)
+static inline struct avl_bs_tree_node *find_node_A(int *dst, const struct avl_bs_tree_node *parent, 
+                                                   const struct avl_bs_tree_node **dict)
 {
-    struct avl_bs_tree_node *node_A = new_node_parent;
+    struct avl_bs_tree_node *node_A = (struct avl_bs_tree_node *) parent;
     int balance_factor;
     int is_it_root = 0;
 
@@ -386,6 +385,25 @@ static inline void perform_rotation_after_insert(struct avl_bs_tree_node *new_no
         is_it_root = strcmp(node_A->avl_key, (*dict)->avl_key);
         balance_factor = calc_balance_factor(node_A);
     } while (is_it_root != 0 && T_TREE_IS_BALANCED(balance_factor));
+
+    *dst = balance_factor;
+    return node_A;
+}
+
+/**
+ * Restores the balance of an AVL tree after a node insertion.
+ * 
+ * @param new_node_parent A pointer to the parent of the newly inserted node.
+ * @param dict A pointer to the root node of the AVL tree.
+ * @param compared_keys An indicator specifying the relative position of the new node to its parent.
+*/
+static inline void perform_rotation_after_insert(const struct avl_bs_tree_node *new_node_parent, 
+                                                 struct avl_bs_tree_node **dict, int comopared_keys)
+{
+    struct avl_bs_tree_node *node_A = (struct avl_bs_tree_node *) new_node_parent;
+    int balance_factor;
+
+    node_A = find_node_A(&balance_factor, new_node_parent, (const struct avl_bs_tree_node **) dict);
 
     // If every node above are balanced, then no rotation has to be done.
     if (T_TREE_IS_BALANCED(balance_factor)) return;
@@ -466,9 +484,55 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     return 0;
 }
 
-static inline void perform_rotation_after_delete()
+static inline void r0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
+    // LL
+    ll_rotation(src, dict);
+}
 
+static inline void r1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // same os R0
+    r0_rotation(src, dict);
+}
+
+static inline void r_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // LR
+    lr_rotation(src, dict);
+}
+
+static inline void l0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // RR
+    rr_rotation(src, dict);
+}
+
+static inline void l1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // Same as L0
+    l0_rotation(src, dict);
+}
+
+static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // RL
+    rl_rotation(src, dict);
+}
+
+
+static inline void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
+                                                 struct avl_bs_tree_node **dict, int comopared_keys)
+{
+    struct avl_bs_tree_node *current_node_A;
+    int is_it_root;
+    int balance_factor;
+
+    do {
+        current_node_A = find_node_A(&balance_factor, deleted_node_parent, (const struct avl_bs_tree_node **) dict);
+        is_it_root = strcmp(current_node_A->avl_key, (*dict)->avl_key);
+    }
+    while (is_it_root != 0);
 }
 
 int cjlib_dict_remove(struct avl_bs_tree_node *dict, const char *restrict key)
