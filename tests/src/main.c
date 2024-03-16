@@ -76,7 +76,7 @@ int main(void)
     cjlib_dict_search(&test_data_s1, dict, "25");
     printf("Result from search: %d\n", test_data_s1.c_value.c_num);
 
-    //cjlib_dict_destroy(&dict);
+    cjlib_dict_destroy(dict);
     // struct cjlib_json json_file;
     // struct cjlib_json_data dst;
 

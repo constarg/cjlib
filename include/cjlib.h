@@ -45,8 +45,8 @@ enum cjlib_json_datatypes
 */
 struct cjlib_json
 {
-    cjlib_json_fd c_fp;        // The file pointer of the json file.
-    cjlib_json_object c_dict;  // The dictionary that contains the values of the json.
+    cjlib_json_fd c_fp;         // The file pointer of the json file.
+    cjlib_json_object *c_dict;  // The dictionary that contains the values of the json.
 };
 
 /**
@@ -70,30 +70,42 @@ struct cjlib_json_data
     enum cjlib_json_datatypes c_datatype;
 };
 
-static inline void cjlib_json_init(struct cjlib_json *restrict src)
+static inline int cjlib_json_init(struct cjlib_json *restrict src)
 {
+    (void)memset(src, 0x0, sizeof(struct cjlib_json));
+    src->c_dict = cjlib_make_dict();
+    if (NULL == src->c_dict) return -1;
+    cjlib_dict_init(src->c_dict);
+    return 0;
+}
+
+static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
+{
+    cjlib_dict_destroy(src->c_dict);
     (void)memset(src, 0x0, sizeof(struct cjlib_json));
 }
 
-static inline void cjlib_json_object_init(cjlib_json_object *restrict src)
+static inline cjlib_json_object *cjlib_json_make_object(void)
 {
-    cjlib_dict_init(src);
+    cjlib_json_object obj = cjlib_make_dict();
+    cjlib_dict_init(obj);
+    return obj;
 }
 
-static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
-{
-    (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
-}
+// static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
+// {
+//     (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
+// }
 
-static inline struct cjlib_json_data *cjlib_json_make_array(size_t size) 
-{
-    return (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data) * size);
-}
+// static inline struct cjlib_json_data *cjlib_json_make_array(size_t size) 
+// {
+//     return (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data) * size);
+// }
 
-static inline void cjlib_json_free_array(struct cjlib_json_data *src)
-{
-    free(src);
-}
+// static inline void cjlib_json_free_array(struct cjlib_json_data *src)
+// {
+//     free(src);
+// }
 
 /**
  * This function acociates a key (string) to a value and set this combination key - value
