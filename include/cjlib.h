@@ -87,7 +87,7 @@ static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
 
 static inline cjlib_json_object *cjlib_json_make_object(void)
 {
-    cjlib_json_object obj = cjlib_make_dict();
+    cjlib_json_object *obj = cjlib_make_dict();
     cjlib_dict_init(obj);
     return obj;
 }

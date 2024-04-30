@@ -33,6 +33,8 @@
 #define T_NODE_IS_LEFT(COMP)  COMP < 0
 #define T_NODE_IS_RIGHT(COMP) COMP > 0
 
+#define T_NODE_IS_ROOT(COMP) COMP == 0
+
 // Determine if the imbalance of the tree is on the right or left subtree.
 #define T_IMBALANCE_ON_LEFT(B_FACTOR) (B_FACTOR > T_TREE_HEIGHT_LEFT)
 #define T_IMBALANCE_ON_RIGHT(B_FACTOR) (B_FACTOR < T_TREE_HEIGHT_RIGHT)
@@ -386,7 +388,8 @@ static inline struct avl_bs_tree_node *find_node_A(int *dst, const struct avl_bs
         node_A = get_ancestor_node(node_A, *dict);
         is_it_root = strcmp(node_A->avl_key, (*dict)->avl_key);
         balance_factor = calc_balance_factor(node_A);
-    } while (is_it_root != 0 && T_TREE_IS_BALANCED(balance_factor));
+    //} while (is_it_root != 0 && T_TREE_IS_BALANCED(balance_factor));
+    } while (!T_NODE_IS_ROOT(is_it_root) && T_TREE_IS_BALANCED(balance_factor));
 
     *dst = balance_factor;
     return node_A;
@@ -526,20 +529,15 @@ static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, str
 static inline void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
                                                  struct avl_bs_tree_node **dict, int comopared_keys)
 {
-    struct avl_bs_tree_node *current_node_A;
-    int is_it_root;
-    int balance_factor;
-
-    do {
-        current_node_A = find_node_A(&balance_factor, deleted_node_parent, (const struct avl_bs_tree_node **) dict);
-        is_it_root = strcmp(current_node_A->avl_key, (*dict)->avl_key);
-    }
-    while (is_it_root != 0);
+    // TODO - retrieve the node A.
+    // TODO - determine the type of deletion
+    // TODO - check the new balance factor of node A and then determine if you must continue of not
+    // TODO - done.
 }
 
-int cjlib_dict_remove(struct avl_bs_tree_node *dict, const char *restrict key)
+int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
 {
-    if (NULL == dict->avl_key) return 0;
+    if (NULL == (*dict)->avl_key) return 0;
 
     struct cjlib_json_data tmp_d;
     struct avl_bs_tree_node *parent;
@@ -549,8 +547,8 @@ int cjlib_dict_remove(struct avl_bs_tree_node *dict, const char *restrict key)
     struct avl_bs_tree_node *tmp_n;
     int compare_keys;
     // There is no node with such a key.
-    if (-1 == cjlib_dict_search(&tmp_d, dict, key)) return -1;
-    parent = search_node(dict, key, S_RETRIEVE_KEY_NODE_PARENT);
+    if (-1 == cjlib_dict_search(&tmp_d, *dict, key)) return -1;
+    parent = search_node(*dict, key, S_RETRIEVE_KEY_NODE_PARENT);
     compare_keys = strcmp(key, parent->avl_key);
     // Get the link from the parent to the node to delete
     link_to_parent = (T_NODE_IS_RIGHT(compare_keys))? &parent->avl_right:&parent->avl_left;

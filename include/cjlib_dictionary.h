@@ -72,7 +72,7 @@ extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_d
  * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_remove(cjlib_dict *dict, const char *restrict key);
+extern int cjlib_dict_remove(cjlib_dict **dict, const char *restrict key);
 
 /**
  * This function free's the space of all the nodes in the
