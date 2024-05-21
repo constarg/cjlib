@@ -30,14 +30,21 @@
 #define T_TREE_IS_BALANCED(B_FACTOR) (B_FACTOR <= T_TREE_HEIGHT_LEFT && B_FACTOR >= T_TREE_HEIGHT_RIGHT)
 
 // Determine the direction of a node.
-#define T_NODE_IS_LEFT(COMP)  COMP < 0
-#define T_NODE_IS_RIGHT(COMP) COMP > 0
+#define T_NODE_IS_LEFT(COMP)  (COMP < 0)
+#define T_NODE_IS_RIGHT(COMP) (COMP > 0)
 
-#define T_NODE_IS_ROOT(COMP) COMP == 0
+#define T_NODE_IS_ROOT(COMP) (COMP == 0)
 
 // Determine if the imbalance of the tree is on the right or left subtree.
 #define T_IMBALANCE_ON_LEFT(B_FACTOR) (B_FACTOR > T_TREE_HEIGHT_LEFT)
 #define T_IMBALANCE_ON_RIGHT(B_FACTOR) (B_FACTOR < T_TREE_HEIGHT_RIGHT)
+
+// Determine if the node that deleted and caused the imbalance, was in the right or left of the tree.
+#define T_INCREASED_B_FACTOR_AFTER_DELETE  0x2
+#define T_DECREASED_B_FACTOR_AFTER_DELETE -0x2
+
+#define T_DELETION_ON_LEFT(B_FACTOR) (B_FACTOR == T_DECREASED_B_FACTOR_AFTER_DELETE)
+#define T_DELETION_ON_RIGHT(B_FACTOR) (B_FACTOR == T_INCREASED_B_FACTOR_AFTER_DELETE)
 
 /**
  * Which type of rotation must be executed
@@ -47,6 +54,28 @@ enum rotation_type
 {
     LL_ROTATION,
     RR_ROTATION
+};
+
+/**
+ * Which type of rotation must be executed
+ * on the imbalanced tree, after right delete.
+*/
+enum rotation_after_right_deletion_type
+{
+    R0        =  0x0,
+    R1        =  0x1,
+    R_MINUS_1 = -0x1
+};
+
+/**
+ * Which type of rotation must be executed
+ * on the imbalanced tree, after left delete.
+*/
+enum rotation_after_left_deletion_type
+{
+    L0        =  0x0,
+    L1        =  0x1,
+    L_MINUS_1 = -0x1
 };
 
 /**
@@ -194,7 +223,7 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
  * Assigns a value to a specified key within an AVL tree node.
  *
  * This function associates a given `value` with the provided `key` and stores them
- * together within the `src` node.
+ * together within the `dst` node.
  * 
  * @param dst A pointer to the node where the key-value pair will be stored.
  * @param key A pointer to a constant character string representing the key.
@@ -526,13 +555,83 @@ static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, str
 }
 
 
-static inline void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
-                                                 struct avl_bs_tree_node **dict, int comopared_keys)
+static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
 {
-    // TODO - retrieve the node A.
-    // TODO - determine the type of deletion
-    // TODO - check the new balance factor of node A and then determine if you must continue of not
-    // TODO - done.
+    // Get the balance factor of the left child.
+    // TODO - remove this
+    assert(node_A->avl_left != NULL);
+    int balance_factor_of_lchild = calc_balance_factor(node_A->avl_left);
+    // TODO - remove this
+    assert(balance_factor_of_lchild == 2);
+
+    // Distinguish the posible senarios
+    switch (balance_factor_of_lchild)
+    {
+        case R0:
+            r0_rotation(node_A, dict);
+            break;
+        case R1:
+            r1_rotation(node_A, dict);
+            break;
+        case R_MINUS_1:
+            r_minus_1_rotation(node_A, dict)
+            break;
+        default:
+            break;
+    }
+
+    return balance_factor_of_lchild
+}
+
+static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
+{
+    // Get the balance factor of the left child.
+    // TODO - remove this
+    assert(node_A->avl_right != NULL);
+    int balance_factor_of_rchild = calc_balance_factor(node_A->avl_right);
+    // TODO - remove this
+    assert(balance_factor_of_rchild == 2);
+
+    // Distinguish the posible senarios
+    switch (balance_factor_of_rchild)
+    {
+        case L0:
+            l0_rotation(node_A, dict);
+            break;
+        case L1:
+            l1_rotation(node_A, dict);
+            break;
+        case L_MINUS_1:
+            l_minus_1_rotation(node_A, dict)
+            break;
+        default:
+            break;
+    }
+
+    return balance_factor_of_rchild
+}
+
+static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
+                                          struct avl_bs_tree_node **dict, int comopared_keys)
+{
+    struct avl_bs_tree_node *node_A      = (struct avl_bs_tree_node *) deleted_node_parent;
+    struct avl_bs_tree_node *prev_node_A = (struct avl_bs_tree_node *) deleted_node_parent;
+
+    int balance_factor_of_A;
+    int balance_factor_of_B; // B is the sibling of the child where the deletion take place.
+
+    do {
+        prev_node_A = node_A;
+        node_A = find_node_A(&balance_factor_of_A, new_node_parent, (const struct avl_bs_tree_node **) dict);
+
+        if (T_DELETION_ON_LEFT(balance_factor_of_A)) {
+            balance_factor_of_B = (node_A, dict);
+        } else if (T_DELETION_ON_RIGHT(balance_factor_of_A)) {
+            balance_factor_of_B = (node_A, dict);
+        }
+
+        if (balance_factor_of_B == R0 || balance_factor_of_B == L0) break;
+    } while (strcmp(prev_node_A->avl_key, node_A->avl_key) != 0); // When the two keys are equal, then we had reached root.
 }
 
 int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
@@ -595,6 +694,7 @@ void get_height(cjlib_dict *restrict src)
 {
     printf("---------------\n");
     printf("%d\n", get_node_height(src));
+    printf("%d\n", calc_balance_factor(src));
     printf("---------------\n");
 }
 
