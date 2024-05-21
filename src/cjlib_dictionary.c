@@ -8,7 +8,6 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include <stdio.h>
 
@@ -211,8 +210,6 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
         // There is no node with such a key.
         return -1;
     } else {
-        // TODO - !! Remove this !! for debug purpose only.
-        assert(dst != NULL);
         (void)memcpy(dst, tmp->avl_data, sizeof(struct cjlib_json_data));
     }
 
@@ -233,9 +230,6 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
 static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict dst, const char *restrict key,
                                            const struct cjlib_json_data *restrict value)
 {
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(dst != NULL);
-
     dst->avl_key  = (char *) key;
     dst->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
     if (NULL == dst->avl_data) return -1;
@@ -276,22 +270,12 @@ static inline struct avl_bs_tree_node *get_ancestor_node(const struct avl_bs_tre
 static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict,
                              enum rotation_type rotation)
 {
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(*dict != NULL);
     struct avl_bs_tree_node *node_A = src;
-    // TODO - REMOVE THIS
-    assert(node_A != NULL);
     struct avl_bs_tree_node *node_B = (rotation == LL_ROTATION)? node_A->avl_left:node_A->avl_right;
     struct avl_bs_tree_node *parent_A = get_ancestor_node(node_A, *dict);
 
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(parent_A != NULL);
-
     int compare_keys = strcmp(node_A->avl_key, parent_A->avl_key);
     
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(node_B != NULL);
-
     // (1), (2). Replace A with B and update the linkage.
     if (T_NODE_IS_LEFT(compare_keys)) {
         parent_A->avl_left = node_B;
@@ -464,17 +448,8 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
 {
     // No root currently exists.
     if (NULL == (*dict)->avl_key) {
-        // TODO - !! Remove this !! for debug purpose only.
-        assert((*dict)->avl_data  == NULL &&
-               (*dict)->avl_left  == NULL &&
-               (*dict)->avl_right == NULL);
-
         (*dict)->avl_left = (*dict)->avl_right = NULL;
         if (-1 == assign_key_value_to_node(*dict, key, src)) return -1;
-
-        // TODO - !! Remove this !! for debug purpose only.
-        char *debug_key = (*dict)->avl_key;
-        assert(strcmp(debug_key, key) == 0);
 
         return 0;
     }
@@ -488,19 +463,12 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     // Retrieve the node that will be the parent of node that holds the key.
     parent = search_node(*dict, key, S_RETRIEVE_KEY_NODE_PARENT);
 
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(parent != NULL);
-
     // Make the new node.
     new_node = (struct avl_bs_tree_node *) malloc(sizeof(struct avl_bs_tree_node));
     if (NULL == new_node) return -1;
     cjlib_dict_init(new_node);
 
     if (-1 == assign_key_value_to_node(new_node, key, src)) return -1;
-
-    // TODO - !! Remove this !! for debug purpose only.
-    char *debug_key = new_node->avl_key;
-    assert(strcmp(debug_key, key) == 0);
 
     // Decide where to put the new node.
     compare_keys = strcmp(key, parent->avl_key);
@@ -514,8 +482,6 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     }
     perform_rotation_after_insert(parent, dict, compare_keys);
 
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(T_TREE_IS_BALANCED(calc_balance_factor(get_ancestor_node(parent, *dict))));
 
     return 0;
 }
@@ -559,11 +525,7 @@ static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, str
 static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
 {
     // Get the balance factor of the left child.
-    // TODO - remove this
-    assert(node_A->avl_left != NULL);
     int balance_factor_of_lchild = calc_balance_factor(node_A->avl_left);
-    // TODO - remove this
-    assert(balance_factor_of_lchild == -2);
 
     // Distinguish the posible senarios
     switch (balance_factor_of_lchild)
@@ -587,8 +549,6 @@ static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *
 static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
 {
     // Get the balance factor of the left child.
-    // TODO - remove this
-    assert(node_A->avl_right != NULL);
     int balance_factor_of_rchild = calc_balance_factor(node_A->avl_right);
 
     // Distinguish the posible senarios
@@ -689,15 +649,6 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
     free(removed);
     removed = NULL;
     return 0;
-}
-
-// TODO - !! Remove this !! for debug purpose only.
-void get_height(cjlib_dict *restrict src)
-{
-    printf("---------------\n");
-    printf("%d\n", get_node_height(src));
-    printf("%d\n", calc_balance_factor(src));
-    printf("---------------\n");
 }
 
 size_t cjlib_dict_destroy(cjlib_dict *dict)
