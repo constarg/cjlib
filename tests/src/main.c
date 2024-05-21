@@ -45,22 +45,16 @@ int main(void)
     test_data7.c_datatype = CJLIB_NUMBER;
     test_data7.c_value.c_num = 44;
 
-    test_data8.c_datatype = CJLIB_NUMBER;
-    test_data8.c_value.c_num = 595;
+    cjlib_dict_insert(&test_data1, &dict, "A");
+    cjlib_dict_insert(&test_data2, &dict, "B");
+    cjlib_dict_insert(&test_data3, &dict, "C");
+    cjlib_dict_insert(&test_data4, &dict, "D");
+    cjlib_dict_insert(&test_data4, &dict, "E");
+    cjlib_dict_insert(&test_data5, &dict, "F");
+    cjlib_dict_insert(&test_data6, &dict, "G");
+    cjlib_dict_insert(&test_data7, &dict, "H");
 
-    test_data9.c_datatype = CJLIB_NUMBER;
-    test_data9.c_value.c_num = 53;
-
-    cjlib_dict_insert(&test_data1, &dict, "10");
-    cjlib_dict_insert(&test_data2, &dict, "22");
-    cjlib_dict_insert(&test_data3, &dict, "59");
-    cjlib_dict_insert(&test_data4, &dict, "79");
-    cjlib_dict_insert(&test_data4, &dict, "25");
-    cjlib_dict_insert(&test_data5, &dict, "120");
-    cjlib_dict_insert(&test_data6, &dict, "124");
-    cjlib_dict_insert(&test_data7, &dict, "5");
-    cjlib_dict_insert(&test_data8, &dict, "15");
-    cjlib_dict_insert(&test_data9, &dict, "434");
+    cjlib_dict_remove(&dict, "F");
 
     get_height(dict);
 
@@ -70,11 +64,11 @@ int main(void)
 
     struct cjlib_json_data test_data_s1;
 
-    cjlib_dict_search(&test_data_s1, dict, "59");
-    printf("Result from search: %d\n", test_data_s1.c_value.c_num);
+    // cjlib_dict_search(&test_data_s1, dict, "59");
+    // printf("Result from search: %d\n", test_data_s1.c_value.c_num);
 
-    cjlib_dict_search(&test_data_s1, dict, "25");
-    printf("Result from search: %d\n", test_data_s1.c_value.c_num);
+    // cjlib_dict_search(&test_data_s1, dict, "25");
+    // printf("Result from search: %d\n", test_data_s1.c_value.c_num);
 
     cjlib_dict_destroy(dict);
     // struct cjlib_json json_file;

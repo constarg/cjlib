@@ -43,8 +43,8 @@
 #define T_INCREASED_B_FACTOR_AFTER_DELETE  0x2
 #define T_DECREASED_B_FACTOR_AFTER_DELETE -0x2
 
-#define T_DELETION_ON_LEFT(B_FACTOR) (B_FACTOR == T_DECREASED_B_FACTOR_AFTER_DELETE)
-#define T_DELETION_ON_RIGHT(B_FACTOR) (B_FACTOR == T_INCREASED_B_FACTOR_AFTER_DELETE)
+#define T_DELETION_ON_LEFT_CHILD(B_FACTOR) (B_FACTOR == T_DECREASED_B_FACTOR_AFTER_DELETE)
+#define T_DELETION_ON_RIGHT_CHILD(B_FACTOR) (B_FACTOR == T_INCREASED_B_FACTOR_AFTER_DELETE)
 
 /**
  * Which type of rotation must be executed
@@ -111,6 +111,7 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
         // cause the queue will reject any NULL source.
         for (size_t i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
             cjlib_queue_deqeue(&tmp, &lvl_traversal_q);
+            printf("| %s |", tmp->avl_key);
 
             if (0 != cjlib_queue_enqeue((const struct avl_bs_tree_node **restrict) &tmp->avl_left, &lvl_traversal_q)) return -1;   
             if (0 != cjlib_queue_enqeue((const struct avl_bs_tree_node **restrict) &tmp->avl_right, &lvl_traversal_q)) return -1;
@@ -122,9 +123,8 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             }
         }
         current_lvl += 1;
-
     }
-
+    printf("\n");
     return current_lvl - 1;
 }
 
@@ -574,13 +574,13 @@ static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *
             r1_rotation(node_A, dict);
             break;
         case R_MINUS_1:
-            r_minus_1_rotation(node_A, dict)
+            r_minus_1_rotation(node_A, dict);
             break;
         default:
             break;
     }
 
-    return balance_factor_of_lchild
+    return balance_factor_of_lchild;
 }
 
 static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
@@ -602,17 +602,17 @@ static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *n
             l1_rotation(node_A, dict);
             break;
         case L_MINUS_1:
-            l_minus_1_rotation(node_A, dict)
+            l_minus_1_rotation(node_A, dict);
             break;
         default:
             break;
     }
 
-    return balance_factor_of_rchild
+    return balance_factor_of_rchild;
 }
 
 static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
-                                          struct avl_bs_tree_node **dict, int comopared_keys)
+                                          struct avl_bs_tree_node **dict)
 {
     struct avl_bs_tree_node *node_A      = (struct avl_bs_tree_node *) deleted_node_parent;
     struct avl_bs_tree_node *prev_node_A = (struct avl_bs_tree_node *) deleted_node_parent;
@@ -622,12 +622,12 @@ static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_
 
     do {
         prev_node_A = node_A;
-        node_A = find_node_A(&balance_factor_of_A, new_node_parent, (const struct avl_bs_tree_node **) dict);
+        node_A = find_node_A(&balance_factor_of_A, deleted_node_parent, (const struct avl_bs_tree_node **) dict);
 
-        if (T_DELETION_ON_LEFT(balance_factor_of_A)) {
-            balance_factor_of_B = (node_A, dict);
-        } else if (T_DELETION_ON_RIGHT(balance_factor_of_A)) {
-            balance_factor_of_B = (node_A, dict);
+        if (T_DELETION_ON_LEFT_CHILD(balance_factor_of_A)) {
+            balance_factor_of_B = perform_actions_after_left_deletion(node_A, dict);
+        } else if (T_DELETION_ON_RIGHT_CHILD(balance_factor_of_A)) {
+            balance_factor_of_B = perform_actions_after_right_deletion(node_A, dict);
         }
 
         if (balance_factor_of_B == R0 || balance_factor_of_B == L0) break;
@@ -671,6 +671,7 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
             tmp_n = tmp_n->avl_right;
         }
         // Link this node with the parent.
+        largest_key_of_left_subtree->avl_right = removed->avl_right;
         *link_to_parent = largest_key_of_left_subtree;
     } else {
         // Case (3), There is only one child under removed node.
@@ -680,7 +681,7 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
     // TODO - !! Remove this !! for debug purpose only.
     assert(*link_to_parent != NULL);
 
-    // TODO - make the rotation after deletion.
+    //perform_rotation_after_delete(parent, dict);
 
     // Deallocate the memory of the node.
     free(removed->avl_data);
