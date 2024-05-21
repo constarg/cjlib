@@ -279,6 +279,8 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
     // TODO - !! Remove this !! for debug purpose only.
     assert(*dict != NULL);
     struct avl_bs_tree_node *node_A = src;
+    // TODO - REMOVE THIS
+    assert(node_A != NULL);
     struct avl_bs_tree_node *node_B = (rotation == LL_ROTATION)? node_A->avl_left:node_A->avl_right;
     struct avl_bs_tree_node *parent_A = get_ancestor_node(node_A, *dict);
 
@@ -544,16 +546,15 @@ static inline void l0_rotation(struct avl_bs_tree_node *restrict src, struct avl
 
 static inline void l1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
-    // Same as L0
-    l0_rotation(src, dict);
-}
-
-static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
-{
     // RL
     rl_rotation(src, dict);
 }
 
+static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+{
+    // Same as L0
+    l0_rotation(src, dict);
+}
 
 static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *node_A, struct avl_bs_tree_node **dict)
 {
@@ -562,7 +563,7 @@ static inline int perform_actions_after_right_deletion(struct avl_bs_tree_node *
     assert(node_A->avl_left != NULL);
     int balance_factor_of_lchild = calc_balance_factor(node_A->avl_left);
     // TODO - remove this
-    assert(balance_factor_of_lchild == 2);
+    assert(balance_factor_of_lchild == -2);
 
     // Distinguish the posible senarios
     switch (balance_factor_of_lchild)
@@ -589,8 +590,6 @@ static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *n
     // TODO - remove this
     assert(node_A->avl_right != NULL);
     int balance_factor_of_rchild = calc_balance_factor(node_A->avl_right);
-    // TODO - remove this
-    assert(balance_factor_of_rchild == 2);
 
     // Distinguish the posible senarios
     switch (balance_factor_of_rchild)
@@ -611,26 +610,26 @@ static inline int perform_actions_after_left_deletion(struct avl_bs_tree_node *n
     return balance_factor_of_rchild;
 }
 
-static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_parent, 
+static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_place, 
                                           struct avl_bs_tree_node **dict)
 {
-    struct avl_bs_tree_node *node_A      = (struct avl_bs_tree_node *) deleted_node_parent;
-    struct avl_bs_tree_node *prev_node_A = (struct avl_bs_tree_node *) deleted_node_parent;
+    struct avl_bs_tree_node *node_A      = (struct avl_bs_tree_node *) deleted_node_place;
+    struct avl_bs_tree_node *prev_node_A = (struct avl_bs_tree_node *) deleted_node_place;
 
-    int balance_factor_of_A;
-    int balance_factor_of_B; // B is the sibling of the child where the deletion take place.
+    int balance_factor_of_A = 0;
+    int balance_factor_of_B = 0; // B is the sibling of the child where the deletion take place.
 
+    balance_factor_of_A = calc_balance_factor(deleted_node_place);
     do {
-        prev_node_A = node_A;
-        node_A = find_node_A(&balance_factor_of_A, deleted_node_parent, (const struct avl_bs_tree_node **) dict);
-
         if (T_DELETION_ON_LEFT_CHILD(balance_factor_of_A)) {
             balance_factor_of_B = perform_actions_after_left_deletion(node_A, dict);
         } else if (T_DELETION_ON_RIGHT_CHILD(balance_factor_of_A)) {
             balance_factor_of_B = perform_actions_after_right_deletion(node_A, dict);
         }
-
         if (balance_factor_of_B == R0 || balance_factor_of_B == L0) break;
+
+        prev_node_A = node_A;
+        node_A = find_node_A(&balance_factor_of_A, deleted_node_place, (const struct avl_bs_tree_node **) dict);
     } while (strcmp(prev_node_A->avl_key, node_A->avl_key) != 0); // When the two keys are equal, then we had reached root.
 }
 
@@ -640,50 +639,52 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
 
     struct cjlib_json_data tmp_d;
     struct avl_bs_tree_node *parent;
-    struct avl_bs_tree_node **link_to_parent;
     struct avl_bs_tree_node *removed;
     struct avl_bs_tree_node *largest_key_of_left_subtree;
+    struct avl_bs_tree_node *largest_key_of_left_subtree_parent;
     struct avl_bs_tree_node *tmp_n;
+    struct avl_bs_tree_node *child_of_removed;
     int compare_keys;
+    int is_root;
     // There is no node with such a key.
     if (-1 == cjlib_dict_search(&tmp_d, *dict, key)) return -1;
+    is_root = (!strcmp(key, (*dict)->avl_key))? 1:0;
     parent = search_node(*dict, key, S_RETRIEVE_KEY_NODE_PARENT);
     compare_keys = strcmp(key, parent->avl_key);
-    // Get the link from the parent to the node to delete
-    link_to_parent = (T_NODE_IS_RIGHT(compare_keys))? &parent->avl_right:&parent->avl_left;
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(link_to_parent != NULL);
 
-    // Retrieve the node to delete from the link.
-    removed = *link_to_parent;
+    removed = (is_root)? (*dict):(T_NODE_IS_RIGHT(compare_keys))? parent->avl_right:parent->avl_left;
 
-    // Case (1), the node has no children.
-    if (NULL == removed->avl_left && NULL == removed->avl_right) {
-        // Discard the link from parent to deleted node.
-        *link_to_parent = NULL;
-    } else if (removed->avl_left && removed->avl_right) {
-        // Case (2), There two children under removed node.
-        largest_key_of_left_subtree = removed->avl_left;
-        tmp_n = removed->avl_left;
-        // Move to the largest key of the left subtree of removed node.
-        while (tmp_n) {
-            largest_key_of_left_subtree = tmp_n;
-            tmp_n = tmp_n->avl_right;
-        }
-        // Link this node with the parent.
-        largest_key_of_left_subtree->avl_right = removed->avl_right;
-        *link_to_parent = largest_key_of_left_subtree;
-    } else {
-        // Case (3), There is only one child under removed node.
-        // In this case, move the link from parent to this one child.
-        *link_to_parent = (NULL != removed->avl_right)? removed->avl_right:removed->avl_left;
+    if (NULL != removed->avl_left && NULL != removed->avl_right) {
+         // Case (2), There two children under removed node.
+         largest_key_of_left_subtree = removed->avl_left;
+         tmp_n = removed->avl_left;
+         // Move to the largest key of the left subtree of removed node.
+         while (tmp_n) {
+             largest_key_of_left_subtree = tmp_n;
+             tmp_n = tmp_n->avl_right;
+         }
+
+        largest_key_of_left_subtree_parent = search_node(*dict, largest_key_of_left_subtree->avl_key, S_RETRIEVE_KEY_NODE_PARENT);
+
+        removed->avl_key  = largest_key_of_left_subtree->avl_key;
+        (void)memcpy(largest_key_of_left_subtree->avl_data, removed->avl_data, sizeof(struct cjlib_json_data));
+
+        removed = largest_key_of_left_subtree;
+        parent  = largest_key_of_left_subtree_parent;
     }
-    // TODO - !! Remove this !! for debug purpose only.
-    assert(*link_to_parent != NULL);
 
-    //perform_rotation_after_delete(parent, dict);
+    // Remove the node from the tree.
+    if (removed->avl_left) child_of_removed = removed->avl_left;
+    else child_of_removed = removed->avl_right;
 
-    // Deallocate the memory of the node.
+    if (parent->avl_left == removed) {
+        parent->avl_left = child_of_removed;
+    } else {
+        parent->avl_right = child_of_removed;
+    }
+
+    perform_rotation_after_delete(removed, dict);
+    
     free(removed->avl_data);
     free(removed);
     removed = NULL;

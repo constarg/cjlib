@@ -54,7 +54,7 @@ int main(void)
     cjlib_dict_insert(&test_data6, &dict, "G");
     cjlib_dict_insert(&test_data7, &dict, "H");
 
-    cjlib_dict_remove(&dict, "F");
+    cjlib_dict_remove(&dict, "D");
 
     get_height(dict);
 
