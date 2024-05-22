@@ -5,6 +5,18 @@
 #include "cjlib.h"
 #include "cjlib_dictionary.h"
 
+struct json_key_value_pair
+{
+    unsigned char *name;
+    unsigned char *value;
+};
+
+struct json_object_track
+{
+    cjlib_dict *j_object;
+    int closed_parentheses;
+};
+
 int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict key, 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
@@ -40,10 +52,27 @@ void cjlib_json_close(const struct cjlib_json *restrict src)
     fclose(src->c_fp);
 }
 
+static void json_object_tracking(const struct json_key_value_pair *src)
+{
+    // todo - keep track of which object we are expading at the time.
+}
+
+static inline int decode_to_key_value_pair(struct json_key_value_pair *dst, const char *src)
+{
+    // todo - get a input such as "name":value and convert it into a json_key_value_pair.
+}
+
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
     // 1. Read the contents of the file, spcecified in the file descriptor
     // 2. Parse the json file and build the dictionary in memory.
+    unsigned char next_byte;
+
+    while (EOF != (next_byte = (unsigned char) fgetc(dst->c_fp))) {
+        
+    }
+
+
     return 0;
 }
 
