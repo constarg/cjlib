@@ -651,7 +651,7 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
     return 0;
 }
 
-size_t cjlib_dict_destroy(cjlib_dict *dict)
+size_t cjlib_dict_destroy(cjlib_dict_t *dict)
 {
     return lvl_order_traversal(dict, T_DELETE_NODES);
 }

@@ -18,28 +18,28 @@ struct avl_bs_tree_node
     struct avl_bs_tree_node *avl_right; // The right child of the node.
 }; 
 
-typedef struct avl_bs_tree_node cjlib_dict;
+typedef struct avl_bs_tree_node cjlib_dict_t;
 
 /**
  * initialize the dictionary.
  * 
  * @param src The dictionary to initialize.
 */
-static inline void cjlib_dict_init(cjlib_dict *restrict src)
+static inline void cjlib_dict_init(cjlib_dict_t *restrict src)
 {
-    (void)memset(src, 0x0, sizeof(cjlib_dict));
+    (void)memset(src, 0x0, sizeof(cjlib_dict_t));
 }
 
 /**
  * Create a new dictionary
 */
-static inline cjlib_dict *cjlib_make_dict(void) 
+static inline cjlib_dict_t *cjlib_make_dict(void) 
 {
-    return (cjlib_dict *) malloc(sizeof(cjlib_dict));
+    return (cjlib_dict_t *) malloc(sizeof(cjlib_dict_t));
 }
 
 // TODO - !! Remove this !! for debug purpose only.
-extern void get_height(cjlib_dict *restrict src);
+extern void get_height(cjlib_dict_t *restrict src);
 
 
 /**
@@ -51,7 +51,7 @@ extern void get_height(cjlib_dict *restrict src);
  * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict *restrict dict, 
+extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict_t *restrict dict, 
                              const char *restrict key);
 
 /**
@@ -62,7 +62,7 @@ extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_d
  * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict **dict,
+extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict_t **dict,
                              const char *restrict key);
 
 /**
@@ -72,7 +72,7 @@ extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_d
  * @param key A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_remove(cjlib_dict **dict, const char *restrict key);
+extern int cjlib_dict_remove(cjlib_dict_t **dict, const char *restrict key);
 
 /**
  * This function free's the space of all the nodes in the
@@ -80,6 +80,6 @@ extern int cjlib_dict_remove(cjlib_dict **dict, const char *restrict key);
  * @param dict A pointer to the dictionary.
  * @return The height of the dictinary (a feature that came as after affect due to the implemantation).
 */
-extern size_t cjlib_dict_destroy(cjlib_dict *dict);
+extern size_t cjlib_dict_destroy(cjlib_dict_t *dict);
 
 #endif

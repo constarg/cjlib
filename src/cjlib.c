@@ -7,15 +7,16 @@
 
 struct json_key_value_pair
 {
-    unsigned char *name;
-    unsigned char *value;
+    unsigned char *j_name;
+    unsigned char *j_value;
 };
 
-struct json_object_track
+struct cjlib_incomp_object
 {
-    cjlib_dict *j_object;
-    int closed_parentheses;
+    char *incmp_identifier;   // The identifier related to the object.
+    cjlib_json_object *incmp_object; // The object that stopped expanding.
 };
+
 
 int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict key, 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
@@ -42,25 +43,25 @@ int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_p
     if (NULL == fp) return -1;
 
     dst->c_fp = fp;
-    cjlib_dict_init(&dst->c_dict);
+    cjlib_dict_init(dst->c_dict);
     return 0;
 }
 
 void cjlib_json_close(const struct cjlib_json *restrict src)
 {
-    cjlib_dict_destroy((cjlib_dict *) &src->c_dict);
+    cjlib_dict_destroy((cjlib_dict_t *) &src->c_dict);
     fclose(src->c_fp);
 }
 
-static void json_object_tracking(const struct json_key_value_pair *src)
-{
-    // todo - keep track of which object we are expading at the time.
-}
+// static void json_object_tracking(const struct json_key_value_pair *src)
+// {
+//     // todo - keep track of which object we are expading at the time.
+// }
 
-static inline int decode_to_key_value_pair(struct json_key_value_pair *dst, const char *src)
-{
-    // todo - get a input such as "name":value and convert it into a json_key_value_pair.
-}
+// static inline int decode_to_key_value_pair(struct json_key_value_pair *dst, const char *src)
+// {
+//     // todo - get a input such as "name":value and convert it into a json_key_value_pair.
+// }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {

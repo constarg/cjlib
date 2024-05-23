@@ -14,7 +14,7 @@ typedef int cjlib_json_num;
 typedef bool cjlib_json_bool;
 
 typedef FILE *cjlib_json_fd;
-typedef cjlib_dict cjlib_json_object;
+typedef cjlib_dict_t cjlib_json_object;
 
 // Some useful macros.
 // Retreive the number which is inside the data.
