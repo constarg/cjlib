@@ -32,6 +32,7 @@
 #define T_NODE_IS_LEFT(COMP)  (COMP < 0)
 #define T_NODE_IS_RIGHT(COMP) (COMP > 0)
 
+// Check whether the key comparison determines that the current node is root.
 #define T_NODE_IS_ROOT(COMP) (COMP == 0)
 
 // Determine if the imbalance of the tree is on the right or left subtree.
@@ -104,16 +105,15 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
     struct avl_bs_tree_node *tmp = NULL;
     size_t current_lvl = 0;
 
-    if (0 != cjlib_queue_enqeue(&src, &lvl_traversal_q)) return -1;
+    if (0 != cjlib_queue_enqeue((const void *restrict) &src, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
     while (!cjlib_queue_is_empty(&lvl_traversal_q)) {
         // NO if - statement needed to ensure that left or right child is NULL,
         // cause the queue will reject any NULL source.
         for (size_t i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
-            cjlib_queue_deqeue(&tmp, &lvl_traversal_q);
-            printf("| %s |", tmp->avl_key);
+            cjlib_queue_deqeue((void *restrict) &tmp, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q);
 
-            if (0 != cjlib_queue_enqeue((const struct avl_bs_tree_node **restrict) &tmp->avl_left, &lvl_traversal_q)) return -1;   
-            if (0 != cjlib_queue_enqeue((const struct avl_bs_tree_node **restrict) &tmp->avl_right, &lvl_traversal_q)) return -1;
+            if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_left, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;   
+            if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_right, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
 
             if (delete_nodes) {
                 free(tmp->avl_data);
@@ -123,7 +123,6 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
         }
         current_lvl += 1;
     }
-    printf("\n");
     return current_lvl - 1;
 }
 
@@ -474,10 +473,8 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     compare_keys = strcmp(key, parent->avl_key);
     printf("KEY: %s  ", key);
     if (T_NODE_IS_RIGHT(compare_keys)) {
-        printf("RIGHT OF %s\n", parent->avl_key);
         parent->avl_right = new_node;
     } else {
-        printf("LEFT OF %s\n", parent->avl_key);
         parent->avl_left = new_node;
     }
     perform_rotation_after_insert(parent, dict, compare_keys);

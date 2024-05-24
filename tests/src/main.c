@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "cjlib.h"
-#include "cjlib_dictionary.h"
 #include "cjlib_queue.h"
 
 // Transform the low level CJLIB_GET_STRING to highier level GET_FIRST_NAME.
@@ -11,12 +10,6 @@
 
 int main(void)
 {
-    // cjlib_dict_search(&test_data_s1, dict, "59");
-    // printf("Result from search: %d\n", test_data_s1.c_value.c_num);
-
-    // cjlib_dict_search(&test_data_s1, dict, "25");
-    // printf("Result from search: %d\n", test_data_s1.c_value.c_num);
-
     // struct cjlib_json json_file;
     // struct cjlib_json_data dst;
 

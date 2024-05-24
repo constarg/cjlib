@@ -38,10 +38,6 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
     return (cjlib_dict_t *) malloc(sizeof(cjlib_dict_t));
 }
 
-// TODO - !! Remove this !! for debug purpose only.
-extern void get_height(cjlib_dict_t *restrict src);
-
-
 /**
  * Searches for an element in a dictionary based on its associated key.
  * 
