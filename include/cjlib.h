@@ -18,15 +18,15 @@ typedef cjlib_dict_t cjlib_json_object;
 
 // Some useful macros.
 // Retreive the number which is inside the data.
-#define CJLIB_GET_NUMBER(CJLIB_DATA) CJLIB_DATA.c_value.c_num
+#define CJLIB_GET_NUMBER(CJLIB_DATA) (CJLIB_DATA.c_value.c_num)
 // Retreive the string which is inside the data.
-#define CJLIB_GET_STRING(CJLIB_DATA) CJLIB_DATA.c_value.c_str
+#define CJLIB_GET_STRING(CJLIB_DATA) (CJLIB_DATA.c_value.c_str)
 // Retreive the boolean which is inside the data.
-#define CJLIB_GET_BOOL(CJLIB_DATA)   CJLIB_DATA.c_value.c_boolean
+#define CJLIB_GET_BOOL(CJLIB_DATA)   (CJLIB_DATA.c_value.c_boolean)
 // Retreive the object which is inside the data.
-#define CJLIB_GET_OBJ(CJLIB_DATA)    CJLIB_DATA.c_value.c_obj
+#define CJLIB_GET_OBJ(CJLIB_DATA)    (CJLIB_DATA.c_value.c_obj)
 // Retreive the Array which is inside the data.
-#define CJLIB_GET_ARR(CJLIB_DATA)    CJLIB_DATA.c_value.c_arr
+#define CJLIB_GET_ARR(CJLIB_DATA)    (CJLIB_DATA.c_value.c_arr)
 
 /**
  * The available datatypes, that json support.

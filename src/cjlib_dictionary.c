@@ -16,16 +16,16 @@
 #include "cjlib_queue.h"
 
 // Those constants are used in the search/insert/delete functions.
-#define S_RETRIEVE_KEY_NODE        0x0
-#define S_RETRIEVE_KEY_NODE_PARENT 0x1
+#define S_RETRIEVE_KEY_NODE        (0x0)
+#define S_RETRIEVE_KEY_NODE_PARENT (0x1)
 
 // Those constatns are used in the lvl_order_traversal function, for the delete_nodes flag.
-#define T_DONT_DELETE_NODES 0x0
-#define T_DELETE_NODES      0x1
+#define T_DONT_DELETE_NODES (0x0)
+#define T_DELETE_NODES      (0x1)
 
 // Those macros are used to determine if the AVL is balanced.
-#define T_TREE_HEIGHT_LEFT   0x1
-#define T_TREE_HEIGHT_RIGHT -0x1
+#define T_TREE_HEIGHT_LEFT  (0x1)
+#define T_TREE_HEIGHT_RIGHT (-0x1)
 #define T_TREE_IS_BALANCED(B_FACTOR) (B_FACTOR <= T_TREE_HEIGHT_LEFT && B_FACTOR >= T_TREE_HEIGHT_RIGHT)
 
 // Determine the direction of a node.
@@ -40,8 +40,8 @@
 #define T_IMBALANCE_ON_RIGHT(B_FACTOR) (B_FACTOR < T_TREE_HEIGHT_RIGHT)
 
 // Determine if the node that deleted and caused the imbalance, was in the right or left of the tree.
-#define T_INCREASED_B_FACTOR_AFTER_DELETE  0x2
-#define T_DECREASED_B_FACTOR_AFTER_DELETE -0x2
+#define T_INCREASED_B_FACTOR_AFTER_DELETE (0x2)
+#define T_DECREASED_B_FACTOR_AFTER_DELETE (-0x2)
 
 #define T_DELETION_ON_LEFT_CHILD(B_FACTOR) (B_FACTOR == T_DECREASED_B_FACTOR_AFTER_DELETE)
 #define T_DELETION_ON_RIGHT_CHILD(B_FACTOR) (B_FACTOR == T_INCREASED_B_FACTOR_AFTER_DELETE)
