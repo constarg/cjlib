@@ -41,10 +41,10 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
 /**
  * Searches for an element in a dictionary based on its associated key.
  * 
- * @param dst A pointer to the memory location where the data of the found element
- *            will be copied.
+ * @param dst  A pointer to the memory location where the data of the found element
+ *             will be copied.
  * @param dict A pointer to the dictionary.
- * @param key A pointer to a constant character string representing the key.
+ * @param key  A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict_t *restrict dict, 
@@ -53,9 +53,9 @@ extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_d
 /**
  * Inserts a new element with the specified key into a dictionary.
  * 
- * @param src A pointer to the `cjlib_json_data` structure containing the data to be inserted.
- * @param dict  A pointer to the dictionary where the element will be added.
- * @param key A pointer to a constant character string representing the key.
+ * @param src  A pointer to the `cjlib_json_data` structure containing the data to be inserted.
+ * @param dict A pointer to the dictionary where the element will be added.
+ * @param key  A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict_t **dict,
@@ -65,7 +65,7 @@ extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_d
  * Removes an element from a CJLib dictionary based on its key.
  * 
  * @param dict A pointer to the dictionary from which the element will be removed.
- * @param key A pointer to a constant character string representing the key.
+ * @param key  A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
 extern int cjlib_dict_remove(cjlib_dict_t **dict, const char *restrict key);

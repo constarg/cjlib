@@ -1,5 +1,5 @@
-obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o 
-obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o
+obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o ./build/cjlib_stack.o 
+obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o ./build/cjlib_stack_debug.o
 
 GCC = gcc
 header_loc = -I ./include/ -I ./src/include/
@@ -22,6 +22,9 @@ debug: dir_make ${obj_files_debug}
 ./build/cjlib_dictionary.o: ./src/cjlib_dictionary.c
 	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_dictionary.c -o ./build/cjlib_dictionary.o
 
+./build/cjlib_stack.o: ./src/cjlib_stack.c
+	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_stack.c -o ./build/cjlib_stack.o
+
 ./build/cjlib_debug.o: ./src/cjlib.c
 	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib.c -o ./build/cjlib_debug.o
 
@@ -30,6 +33,9 @@ debug: dir_make ${obj_files_debug}
 
 ./build/cjlib_dictionary_debug.o: ./src/cjlib_dictionary.c
 	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_dictionary.c -o ./build/cjlib_dictionary_debug.o
+
+./build/cjlib_stack_debug.o: ./src/cjlib_stack.c
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_stack.c -o ./build/cjlib_stack_debug.o
 
 dir_make:
 	mkdir -p ./build/

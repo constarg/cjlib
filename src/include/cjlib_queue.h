@@ -8,19 +8,17 @@
 #include "cjlib_dictionary.h"
 
 /**
- * This structures represent a queue node, which 
- * store's the informations about a avl tree node.
-*/
+ * This structure represents the data stored in a queue node.
+ */
 struct cjlib_queue_node 
 {
     void *q_data;
-    size_t q_data_s;
     struct cjlib_queue_node *q_next;
 };
 
 /**
- * This structure represent a queue.
-*/
+ * This structure represents a queue.
+ */
 struct cjlib_queue
 {
     struct cjlib_queue_node *front;
@@ -28,49 +26,49 @@ struct cjlib_queue
 };
 
 /**
- * This inline function initialize respectfully the memory 
- * pointed by the pointer src, which corespond to the queue 
- * of interest.
+ * This inline function initializes the memory pointed 
+ * to by @src, corresponding to the queue of interest.
  * 
- * @param src A pointer which points to the queue of interest.
-*/
+ * @param src A pointer to the queue to be initialized.
+ */
 static inline void cjlib_queue_init(struct cjlib_queue *restrict src)
 {
     (void)memset(src, 0x0, sizeof(struct cjlib_queue));
 }
 
 /**
- * Removes the front element from a queue and stores its value.
+ * Removes the data from the last position of the queue and copies it to @dst.
  * 
- * @param dst A pointer to the memory location where the data from the front
- *            element of the queue will be copied.
- * @param queue A pointer to the queue from which to remove the front element.
-*/
-extern void cjlib_queue_deqeue(void *restrict dst, size_t size, struct cjlib_queue *restrict queue);
+ * @param dst    Pointer to where the data will be stored.
+ * @param d_size Size of the data type.
+ * @param queue  The queue from which the data will be removed.
+ */
+extern void cjlib_queue_deqeue(void *restrict dst, size_t d_size, struct cjlib_queue *restrict queue);
 
 /**
- * This function check wether the queue is empty.
+ * Checks whether the queue is empty.
  * 
  * @param queue A pointer to the queue.
-*/
+ * @return True if the queue is empty, otherwise false.
+ */
 extern bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue);
 
 /**
- * This funciton determines the current size of the queue
+ * Determines the current size of the queue.
  * 
- * @param src A pointer to the queue.
- * @return The size of the queue.
-*/
+ * @param queue A pointer to the queue.
+ * @return The current size of the queue.
+ */
 extern size_t cjlib_queue_size(const struct cjlib_queue *restrict src);
 
 /**
- * Adds new data to the back (rear) of a queue.
+ * Appends the data pointed to by @src to the end of the queue.
  * 
- * @param src A pointer to the data to be added to the back of the queue.
- * @param queue A pointer to the queue where the data needs to be stored.
- * @return 0 on success, othwerwise -1.
- *
-*/
-extern int cjlib_queue_enqeue(const void *restrict src, size_t size, struct cjlib_queue *restrict queue);
+ * @param src    Pointer to the data to be stored in the queue.
+ * @param s_size Size of the data type to be stored.
+ * @param queue  The queue where the data will be stored.
+ * @returns 0 on success, otherwise returns -1.
+ */
+extern int cjlib_queue_enqeue(const void *restrict src, size_t s_size, struct cjlib_queue *restrict queue);
 
 #endif
