@@ -471,7 +471,7 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
 
     // Decide where to put the new node.
     compare_keys = strcmp(key, parent->avl_key);
-    printf("KEY: %s  ", key);
+
     if (T_NODE_IS_RIGHT(compare_keys)) {
         parent->avl_right = new_node;
     } else {
