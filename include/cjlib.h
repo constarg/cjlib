@@ -18,16 +18,27 @@ typedef cjlib_dict_t cjlib_json_object;
 
 #if defined(__GNUC__) || defined(__clang__)
 
-#if defined(CJLIB_ALWAYS_INLINE)
-#undef CJLIB_ALWAYS_INLINE
-#define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
-#elif !defined(CJLIB_ALWAYS_INLINE)
-#define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
-#endif
+ #if defined(CJLIB_ALWAYS_INLINE)
+  #undef CJLIB_ALWAYS_INLINE
+ #endif
+
+ #define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
+
+ #if defined(CJLIB_BRANCH_OPTIMIZE)
+  #undef CJLIB_BANCH_OPTIMIZE
+ #endif
+
+ #define CJLIB_BRANCH_UNLIKELY(x) __builtin_expect(!!(x), 1)
 
 #else
-#define CJLIB_ALWAYS_INLINE inline
+  #define CJLIB_ALWAYS_INLINE inline
 #endif
+
+#undef CJLIB_GET_NUMBER
+#undef CJLIB_GET_STRING
+#undef CJLIB_GET_BOOL
+#undef CJLIB_GET_OBJ
+#undef CJLIB_GET_ARR
 
 // Some useful macros.
 // Retreive the number which is inside the data.

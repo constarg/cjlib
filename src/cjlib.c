@@ -22,7 +22,7 @@ int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
     value->c_datatype = datatype;
-    if (-1 == cjlib_dict_insert(value, &src, key)) return -1;
+    //if (-1 == cjlib_dict_insert(value, &src, key)) return -1;
     return 0;
 }
 
@@ -31,7 +31,7 @@ int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json
 {
     struct cjlib_json_data *tmp = NULL;
 
-    if (-1 == cjlib_dict_search(&tmp, src, key)) return -1;
+    //if (-1 == cjlib_dict_search(tmp, src, key)) return -1;
 
     (void)memcpy(dst, tmp, sizeof(struct cjlib_json_data));
     return 0;
@@ -43,10 +43,10 @@ int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_j
     // dst == NULL, then you can skip the return value.
     if (NULL == dst) goto perform_deletion;
 
-    if (-1 == cjlib_json_get(dst, src, key)) return -1;
+    //if (-1 == cjlib_json_get(dst, src, key)) return -1;
 
 perform_deletion:
-    if (-1 == cjlib_dict_remove(&src, key)) return -1;
+    //if (-1 == cjlib_dict_remove(&src, key)) return -1;
 
     return 0;
 }
