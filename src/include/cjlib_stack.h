@@ -31,7 +31,7 @@ static inline void cjlib_stack_init(struct cjlib_stack *restrict src)
 }
 
 /**
- * Pushes the data pointed to by @src onto the stack.
+ * Pushes the data pointed to by src onto the stack.
  * 
  * @param src    Pointer to the data to be pushed onto the stack.
  * @param s_size Size of the data type.
@@ -41,7 +41,7 @@ static inline void cjlib_stack_init(struct cjlib_stack *restrict src)
 extern int cjlib_stack_push(const void *restrict src, size_t s_size, struct cjlib_stack *restrict stack);
 
 /**
- * Removes the data at the top of the stack and copies it to @dst.
+ * Removes the data at the top of the stack and copies it to dst.
  * 
  * @param dst    Pointer to where the data will be stored.
  * @param d_size Size of the data type.

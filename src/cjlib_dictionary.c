@@ -483,37 +483,38 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     return 0;
 }
 
-static inline void r0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+static CJLIB_ALWAYS_INLINE void r0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // LL
     ll_rotation(src, dict);
 }
 
-static inline void r1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+
+static CJLIB_ALWAYS_INLINE void r1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // same os R0
     r0_rotation(src, dict);
 }
 
-static inline void r_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+static CJLIB_ALWAYS_INLINE void r_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // LR
     lr_rotation(src, dict);
 }
 
-static inline void l0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+static CJLIB_ALWAYS_INLINE void l0_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // RR
     rr_rotation(src, dict);
 }
 
-static inline void l1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+static CJLIB_ALWAYS_INLINE void l1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // RL
     rl_rotation(src, dict);
 }
 
-static inline void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
+static CJLIB_ALWAYS_INLINE void l_minus_1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     // Same as L0
     l0_rotation(src, dict);

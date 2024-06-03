@@ -16,6 +16,19 @@ typedef bool cjlib_json_bool;
 typedef FILE *cjlib_json_fd;
 typedef cjlib_dict_t cjlib_json_object;
 
+#if defined(__GNUC__) || defined(__clang__)
+
+#if defined(CJLIB_ALWAYS_INLINE)
+#undef CJLIB_ALWAYS_INLINE
+#define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
+#elif !defined(CJLIB_ALWAYS_INLINE)
+#define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
+#endif
+
+#else
+#define CJLIB_ALWAYS_INLINE inline
+#endif
+
 // Some useful macros.
 // Retreive the number which is inside the data.
 #define CJLIB_GET_NUMBER(CJLIB_DATA) (CJLIB_DATA.c_value.c_num)
