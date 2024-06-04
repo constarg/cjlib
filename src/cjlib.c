@@ -38,12 +38,12 @@ int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json
 }
 
 int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src, 
-                             const char *key)
+                             const char *restrict key)
 {
     // dst == NULL, then you can skip the return value.
     if (NULL == dst) goto perform_deletion;
 
-    //if (-1 == cjlib_json_get(dst, src, key)) return -1;
+    if (-1 == cjlib_json_object_get(dst, src, key)) return -1;
 
 perform_deletion:
     //if (-1 == cjlib_dict_remove(&src, key)) return -1;

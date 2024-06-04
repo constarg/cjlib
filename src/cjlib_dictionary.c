@@ -106,7 +106,9 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
     size_t current_lvl = 0;
 
     if (0 != cjlib_queue_enqeue((const void *restrict) &src, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
-    while (!cjlib_queue_is_empty(&lvl_traversal_q)) {
+
+    bool empty_queue = cjlib_queue_is_empty(&lvl_traversal_q);
+    while (CJLIB_BRANCH_LIKELY(!empty_queue)) {
         // NO if - statement needed to ensure that left or right child is NULL,
         // cause the queue will reject any NULL source.
         for (size_t i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
@@ -115,7 +117,7 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_left, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;   
             if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_right, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
 
-            if (delete_nodes) {
+            if (CJLIB_BRANCH_UNLIKELY(delete_nodes)) {
                 free(tmp->avl_data);
                 free(tmp);
                 tmp = NULL;

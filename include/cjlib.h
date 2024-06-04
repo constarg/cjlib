@@ -24,14 +24,25 @@ typedef cjlib_dict_t cjlib_json_object;
 
  #define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
 
- #if defined(CJLIB_BRANCH_OPTIMIZE)
-  #undef CJLIB_BANCH_OPTIMIZE
- #endif
-
- #define CJLIB_BRANCH_UNLIKELY(x) __builtin_expect(!!(x), 1)
-
 #else
   #define CJLIB_ALWAYS_INLINE inline
+#endif
+
+#if defined(__linux__)
+
+ #if defined(CJLIB_BRANCH_LIKELY)
+  #undef CJLIB_BRANCH_LIKELY
+ #endif
+
+ #if defined(CJLIB_BRANCH_UNLIKELY)
+  #undef CJLIB_BRANCH_LIKELY
+ #endif
+
+ #define CJLIB_BRANCH_LIKELY(x) __builtin_expect(!!(x), 1)
+ #define CJLIB_BRANCH_UNLIKELY(x) __builtin_expect(!!(x), 0)
+
+#else
+ #define CJLIB_BRANCH_LIKELY(x) !!(x)
 #endif
 
 #undef CJLIB_GET_NUMBER
@@ -177,7 +188,7 @@ extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const 
 static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *restrict key, 
                                  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
-    return cjlib_json_object_set(&src->c_dict, key, value, datatype);
+    return cjlib_json_object_set(src->c_dict, key, value, datatype);
 }
 
 /**
@@ -191,7 +202,7 @@ static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *re
 static inline int cjlib_json_get(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
                                  const char *restrict key)
 {
-    return cjlib_json_object_get(dst, &src->c_dict, key);
+    return cjlib_json_object_get(dst, src->c_dict, key);
 }
 /**
  * This function removes the data acociated with the key.
@@ -201,9 +212,9 @@ static inline int cjlib_json_get(struct cjlib_json_data *restrict dst, const str
  * @return 0 on success, otherwise -1.
 */
 static inline int cjlib_json_remove(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
-                             const char *key)
+                             const char *restrict key)
 {
-    return cjlib_json_object_remove(dst, &src->c_dict, key);
+    return cjlib_json_object_remove(dst, src->c_dict, key);
 }
 
 /**
@@ -238,7 +249,7 @@ extern char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
 
 static inline char *cjlib_json_stringtify(struct cjlib_json *restrict src)
 {
-    return cjlib_json_object_stringtify(&src->c_dict);
+    return cjlib_json_object_stringtify(src->c_dict);
 }
 
 /**
