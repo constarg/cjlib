@@ -28,28 +28,43 @@ typedef cjlib_dict_t cjlib_json_object;
   #define CJLIB_ALWAYS_INLINE inline
 #endif
 
+#if defined(CJLIB_BRANCH_LIKELY)
+ #undef CJLIB_BRANCH_LIKELY
+#endif
+
+#if defined(CJLIB_BRANCH_UNLIKELY)
+ #undef CJLIB_BRANCH_LIKELY
+#endif
+
 #if defined(__linux__)
-
- #if defined(CJLIB_BRANCH_LIKELY)
-  #undef CJLIB_BRANCH_LIKELY
- #endif
-
- #if defined(CJLIB_BRANCH_UNLIKELY)
-  #undef CJLIB_BRANCH_LIKELY
- #endif
 
  #define CJLIB_BRANCH_LIKELY(x) __builtin_expect(!!(x), 1)
  #define CJLIB_BRANCH_UNLIKELY(x) __builtin_expect(!!(x), 0)
 
 #else
  #define CJLIB_BRANCH_LIKELY(x) !!(x)
+ #define CJLIB_BRANCH_UNLIKELY(x) !!(x)
 #endif
 
-#undef CJLIB_GET_NUMBER
-#undef CJLIB_GET_STRING
-#undef CJLIB_GET_BOOL
-#undef CJLIB_GET_OBJ
-#undef CJLIB_GET_ARR
+#if defined(CJLIB_GET_NUMBER)
+ #undef CJLIB_GET_NUMBER
+#endif
+
+#if defined(CJLIB_GET_STRING)
+ #undef CJLIB_GET_STRING
+#endif
+
+#if defined(CJLIB_GET_BOOL)
+ #undef CJLIB_GET_BOOL
+#endif
+
+#if defined(CJLIB_GET_OBJ)
+ #undef CJLIB_GET_OBJ
+#endif
+
+#if defined(CJLIB_GET_ARR)
+ #undef CJLIB_GET_ARR
+#endif
 
 // Some useful macros.
 // Retreive the number which is inside the data.
@@ -82,6 +97,7 @@ struct cjlib_json
 {
     cjlib_json_fd c_fp;         // The file pointer of the json file.
     cjlib_json_object *c_dict;  // The dictionary that contains the values of the json.
+    char *c_filepath;
 };
 
 /**
@@ -152,7 +168,7 @@ static inline cjlib_json_object *cjlib_json_make_object(void)
  * @param datatype The json datatype of the value.
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_object_set(cjlib_json_object *restrict src, const char *restrict key, 
+extern int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key, 
                                  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype);
 
 /**
@@ -173,7 +189,7 @@ extern int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjl
  * @param key A string that acociates a value with it. 
  * @return 0 on success, otherwise -1.
 */
-extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src, 
+extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, cjlib_json_object *src, 
                                     const char *key);
 
 /**
@@ -230,7 +246,7 @@ extern int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict
  * This function close a json file.
  * @param src The json object acociated with the open file.
 */
-extern void cjlib_json_close(const struct cjlib_json *restrict src);
+extern void cjlib_json_close(struct cjlib_json *restrict src);
 
 /**
  * This function read's the contents of a json file.

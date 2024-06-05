@@ -305,7 +305,7 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
  * @param src  A pointer to the node to be rotated around.
  * @param dict A pointer to a pointer to the root node of the AVL tree.
  */
-static inline void ll_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_node **restrict dict)
+static inline void ll_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {
     /**    |            |
      *     A            B
