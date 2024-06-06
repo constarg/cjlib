@@ -10,18 +10,20 @@
 
 int main(void)
 {
-    // struct cjlib_json json_file;
-    // struct cjlib_json_data dst;
+    struct cjlib_json json_file;
+    struct cjlib_json_data dst;
 
     // // Initiazlie the json file.
-    // cjlib_json_init(&json_file);
-    // cjlib_json_data_init(&dst);
+     cjlib_json_init(&json_file);
+     //cjlib_json_data_init(&dst);
 
     // // Open the json file of interest.
-    // if (-1 == cjlib_json_open(&json_file, "./input/example.json", "r")) {
-    //     (void)printf("Failed to open the json file\n");
-    //     exit(0);
-    // }
+    if (-1 == cjlib_json_open(&json_file, "../input/example.json", "r")) {
+         (void)printf("Failed to open the json file\n");
+         exit(0);
+    }
+
+    cjlib_json_read(&json_file);
 
     // if (-1 == cjlib_json_get(&dst, &json_file, "first_name")) {
     //     (void)printf("Failed to retrieve key");

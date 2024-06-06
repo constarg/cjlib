@@ -10,7 +10,7 @@
 
 #include "cjlib_dictionary.h"
 
-typedef int cjlib_json_num;
+typedef long cjlib_json_num;
 typedef bool cjlib_json_bool;
 
 typedef FILE *cjlib_json_fd;
@@ -86,6 +86,7 @@ enum cjlib_json_datatypes
     CJLIB_STRING,
     CJLIB_NUMBER,
     CJLIB_ARRAY,
+    CJLIB_BOOLEAN,
     CJLIB_OBJECT,
     CJLIB_NULL
 };
@@ -97,7 +98,6 @@ struct cjlib_json
 {
     cjlib_json_fd c_fp;         // The file pointer of the json file.
     cjlib_json_object *c_dict;  // The dictionary that contains the values of the json.
-    char *c_filepath;
 };
 
 /**
@@ -143,10 +143,27 @@ static inline cjlib_json_object *cjlib_json_make_object(void)
     return obj;
 }
 
-// static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
-// {
-//     (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
-// }
+static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
+{
+     (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
+}
+
+static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
+{
+    switch (src->c_datatype)
+    {
+        case CJLIB_STRING:
+            free(src->c_value.c_arr);
+            break;
+        case CJLIB_OBJECT:
+            cjlib_dict_destroy(&src->c_value.c_obj);
+            break;
+        case CJLIB_ARRAY:
+            free(src->c_value.c_arr);
+        default:
+            break;
+    }
+}
 
 // static inline struct cjlib_json_data *cjlib_json_make_array(size_t size) 
 // {
