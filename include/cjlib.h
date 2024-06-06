@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "cjlib_dictionary.h"
+#include "cjlib_error.h"
 
 typedef long cjlib_json_num;
 typedef bool cjlib_json_bool;

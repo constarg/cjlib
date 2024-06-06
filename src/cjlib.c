@@ -7,6 +7,7 @@
 #include <ctype.h>
 
 #include "cjlib.h"
+#include "cjlib_error.h"
 #include "cjlib_dictionary.h"
 
 #define DOUBLE_QUOTES         (0x22) // ASCII representive of "
@@ -31,8 +32,12 @@ struct incomplete_property
     char *i_name;              // The name of the property which holds the object.
 };
 
-// TODO - make a structure which represents an error in a json.
-// TODO - after that make a function that return something that represent the error (like the property in which the error occured)
+static struct cjlib_json_error g_error;
+
+void cjlib_json_get_error(struct cjlib_json_error *restrict dst)
+{
+    (void)memcpy(dst, &g_error, sizeof(struct cjlib_json_error));
+}
 
 int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key, 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
@@ -92,6 +97,14 @@ static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)
     return true;
 }
 
+static CJLIB_ALWAYS_INLINE void setup_error(const char *property_name, const char *property_value, 
+                                            enum cjlib_json_error_types error_code)
+{
+    g_error.c_property_name  = strdup(property_name);
+    g_error.c_property_value = strdup(property_value);
+    g_error.c_error_code     = error_code;
+}
+
 static inline int identify_simple_property(const struct raw_simple_property *restrict src)
 {
     char *property_value = src->p_value;
@@ -111,14 +124,21 @@ static inline int identify_simple_property(const struct raw_simple_property *res
     } else if (is_number(property_value)) {
         value_type = CJLIB_NUMBER;
         value.c_num = strtol(property_value, NULL, 10);
-    } else return -1; // TODO - Return something else, like the name of the property in which the error had occured.
+    } else {
+        setup_error(src->p_name, src->p_value, INVALID_TYPE);
+        return -1;
+    }
 
-    if (value_type == CJLIB_NUMBER && (LONG_MAX == value.c_num || LONG_MIN == value.c_num)) return -1;
+    // TODO - check whether to free the memory of property name and value.
 
+    if (value_type == CJLIB_NUMBER && (LONG_MAX == value.c_num || LONG_MIN == value.c_num)) {
+        setup_error(src->p_name, src->p_value, INVALID_NUMBER);
+        return -1;
+    }
     property.c_datatype = value_type;
     property.c_value    = value;
 
-    free(property_value); // TODO - make a revision, is it actaully mallocted? when you decide, remove or let it.
+    
     return 0;
 }
 
