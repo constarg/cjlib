@@ -6,12 +6,14 @@
 
 enum cjlib_json_error_types
 {
+    NO_ERROR,
     INVALID_TYPE,
     INVALID_NAME,
     DUPLICATE_NAME,
     INVALID_PROPERTY,
-    INCOMPLETE_BRACKETS,
+    INCOMPLETE_CRULY_BRACKETS,
     INCOMPLETE_SQAURE_BRACKETS,
+    INCOMPLETE_DOUBLE_QUOTES,
     MISSING_COMMA,
     INVALID_NUMBER
 };
@@ -23,10 +25,10 @@ struct cjlib_json_error
     enum cjlib_json_error_types c_error_code; // A error code indicating the error.
 };
 
-
 static inline void cjlib_json_error_init(struct cjlib_json_error *restrict src)
 {
     (void)memset(src, 0x0, sizeof(struct cjlib_json_error));
+    src->c_error_code = NO_ERROR;
 }
 
 static inline void cjlib_json_error_destroy(struct cjlib_json_error *restrict src)

@@ -26,13 +26,13 @@ int main(void)
     cjlib_json_read(&json_file);
 
     // if (-1 == cjlib_json_get(&dst, &json_file, "first_name")) {
-    //     (void)printf("Failed to retrieve key");
-    //     cjlib_json_close(&json_file);
-    //     exit(0);
+    //      (void)printf("Failed to retrieve key");
+    //      cjlib_json_close(&json_file);
+    //      exit(0);
     // }
 
     // (void)printf("NAME: %s\n", GET_FIRST_NAME(dst));
 
     // // Close the json file.
-    // cjlib_json_close(&json_file);
+    //cjlib_json_close(&json_file);
 }

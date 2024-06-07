@@ -15,7 +15,15 @@
 #define SQUARE_BRACKETS_OPEN  (0x5B) // ASCII representive of [
 #define CURLY_BRACKETS_CLOSE  (0x7D) // ASCII representive of } 
 #define SQUARE_BRACKETS_CLOSE (0x5D) // ASCII representive of ]
+#define COMMMA                (0x2C) // ASCII representive of ,
 
+#define DOUBLE_QUOTES_LIMIT   (0x4)  // How many double auotes can be in a simple property value.
+
+enum byte_gathering_opt
+{
+    DONT_GATHER,
+    GETHER 
+};
 
 struct raw_simple_property
 {
@@ -80,6 +88,7 @@ int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_p
 
     dst->c_fp = fp;
     cjlib_dict_init(dst->c_dict);
+    cjlib_json_error_init(&g_error);
     return 0;
 }
 
@@ -142,33 +151,111 @@ static inline int identify_simple_property(const struct raw_simple_property *res
     return 0;
 }
 
-static inline void decode_simple_property(const struct cjlib_json *restrict src)
+static inline void decode_simple_property_value(const struct cjlib_json *restrict src, const char *p_name)
 {
     struct raw_simple_property raw_property;
 
+    // unsigned char property_byte;
+    // do {
+    //     property_byte = (unsigned char) fgetc(src->c_fp);
+    //     if (feof(src->c_fp)) return -1; // It is an error. 
+
+    //     if (CURLY_BRACKETS_CLOSE == property_byte || COMMMA == property_byte) {
+    //         // TODO - here the property is complete.
+    //     }
+
+
+    // } while 
 
 }
 
-static inline void decode_complex_property(const struct cjlib_json *restrict src)
+static inline void decode_complex_property_value(const struct cjlib_json *restrict src, const char *p_name)
 {
 
+}
+
+static inline void decode_property(const struct cjlib_json *restrict src)
+{
+
+}
+
+static unsigned char *search_byte_until(FILE *src, unsigned char ch_stop, enum byte_gathering_opt gather)
+{
+    unsigned char curr_byte;
+    unsigned char *chunk = NULL; 
+    size_t chunk_init_s = 128;
+    size_t chunk_s = 0;
+
+    if (gather == GETHER) {
+        chunk = (unsigned char *) malloc(sizeof(char) * chunk_init_s);
+        if (NULL == chunk) return NULL;
+    }
+
+    do {
+        curr_byte = (unsigned char) fgetc(src);
+        if (feof(src)) return 0;
+
+        if (gather == GETHER) {
+            chunk[chunk_s++] = curr_byte;
+            if (chunk_s == chunk_init_s) {
+                chunk_init_s += chunk_init_s;
+                chunk = (unsigned char *) realloc(chunk, sizeof(char) * chunk_init_s);
+                if (NULL == chunk) return NULL;
+            }
+        }
+
+        if (ch_stop == curr_byte) break;
+
+    } while (1);
+
+    return chunk;
+}
+
+static inline int validate_json(const struct cjlib_json *restrict src)
+{
+    unsigned char curr_byte;
+    int curl_brackets_count   = 0;
+    int square_brackets_count = 0;
+    int double_quotes_count   = 0;
+
+    do {
+        curr_byte = (unsigned char) fgetc(src->c_fp);
+        if (feof(src->c_fp)) break;
+
+        if (CURLY_BRACKETS_OPEN == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) ++curl_brackets_count;
+        if (SQUARE_BRACKETS_OPEN == curr_byte || SQUARE_BRACKETS_CLOSE == curr_byte) ++square_brackets_count;
+        if (DOUBLE_QUOTES == curr_byte) ++double_quotes_count;
+
+    } while (1);
+
+    rewind(src->c_fp);
+
+    if (curl_brackets_count % 2 != 0) setup_error("", "", INCOMPLETE_CRULY_BRACKETS);
+    else if (square_brackets_count % 2 != 0) setup_error("", "", INCOMPLETE_SQAURE_BRACKETS);
+    else if (double_quotes_count % 2 != 0) setup_error("", "", INCOMPLETE_DOUBLE_QUOTES);
+    
+    if (g_error.c_error_code != NO_ERROR) return -1;
+
+    return 0;
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
     unsigned char curr_byte;
-    int test = 0;
 
-    do {
-        curr_byte = (unsigned char) fgetc(dst->c_fp);
-        if (feof(dst->c_fp)) break;
+    if (validate_json(dst) == 0) {
+        printf("CORRECT\n");
+    } else {
+        printf("WRONG!!!\n");
+    }
 
-        if (DOUBLE_QUOTES == curr_byte) { // Check  for "
-            decode_simple_property((const struct cjlib_json *) dst);
-        }
+    // while (1) {
+    //     (void)search_byte_until(dst->c_fp, DOUBLE_QUOTES, DONT_GATHER);
+    //     if (feof(dst->c_fp)) break;
 
-    } while (1);
-    
+    //     decode_property((const struct cjlib_json *) dst);
+    // }
+
     return 0;
 }
 

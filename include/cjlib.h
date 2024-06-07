@@ -75,9 +75,9 @@ typedef cjlib_dict_t cjlib_json_object;
 // Retreive the boolean which is inside the data.
 #define CJLIB_GET_BOOL(CJLIB_DATA)   (CJLIB_DATA.c_value.c_boolean)
 // Retreive the object which is inside the data.
-#define CJLIB_GET_OBJ(CJLIB_DATA)    (CJLIB_DATA.c_value.c_obj)
+#define CJLIB_GET_OBJECT(CJLIB_DATA) (CJLIB_DATA.c_value.c_obj)
 // Retreive the Array which is inside the data.
-#define CJLIB_GET_ARR(CJLIB_DATA)    (CJLIB_DATA.c_value.c_arr)
+#define CJLIB_GET_ARRAY(CJLIB_DATA)  (CJLIB_DATA.c_value.c_arr)
 
 /**
  * The available datatypes, that json support.
