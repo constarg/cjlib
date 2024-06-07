@@ -25,6 +25,9 @@ typedef cjlib_dict_t cjlib_json_object;
 
  #define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
 
+ #define CJLIB_ALIAS(name, alias_name) \
+    extern __typeof__(name) alias_name __attribute__((alias(#name)))
+
 #else
   #define CJLIB_ALWAYS_INLINE inline
 #endif
@@ -210,47 +213,55 @@ extern int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjl
 extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, cjlib_json_object *src, 
                                     const char *key);
 
-/**
- * This function acociates a key (string) to a value and set this combination key - value
- * to a json object.
- * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
- * @param value The value to acociate with the key.
- * @param datatype The json datatype of the value.
- * @return 0 on success, otherwise -1.
-*/
-static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *restrict key, 
-                                 struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
-{
-    return cjlib_json_object_set(src->c_dict, key, value, datatype);
-}
 
-/**
- * This function get the data acociated with the key.
- * @param dst A pointer that points to the location where the retrieved data should be stored.
- * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
- * @param value The value acociated with the key.
- * @return 0 on success, otherwise -1.
-*/
-static inline int cjlib_json_get(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
-                                 const char *restrict key)
-{
-    return cjlib_json_object_get(dst, src->c_dict, key);
-}
-/**
- * This function removes the data acociated with the key.
- * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
- * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates a value with it. 
- * @return 0 on success, otherwise -1.
-*/
-static inline int cjlib_json_remove(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
-                             const char *restrict key)
-{
-    return cjlib_json_object_remove(dst, src->c_dict, key);
-}
+#if defined(__GNUC__)
+ CJLIB_ALIAS(cjlib_json_object_set, cjlib_json_set);
+ CJLIB_ALIAS(cjlib_json_object_get, cjlib_json_get);
+ CJLIB_ALIAS(cjlib_json_object_remove, cjlib_json_remove);
+#else
+ /**
+  * This function acociates a key (string) to a value and set this combination key - value
+  * to a json object.
+  * 
+  * @param src A pointer to the json object in which we should put the value.
+  * @param key A string that acociates the value with it.
+  * @param value The value to acociate with the key.
+  * @param datatype The json datatype of the value.
+  * @return 0 on success, otherwise -1.
+ */
+ static inline int cjlib_json_set(struct cjlib_json *restrict src, const char *restrict key, 
+                                  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
+ {
+     return cjlib_json_object_set(src->c_dict, key, value, datatype);
+ }
 
+ /**
+  * This function get the data acociated with the key.
+  * @param dst A pointer that points to the location where the retrieved data should be stored.
+  * @param src A pointer to the json object in which we should put the value.
+  * @param key A string that acociates the value with it.
+  * @param value The value acociated with the key.
+  * @return 0 on success, otherwise -1.
+ */
+ static inline int cjlib_json_get(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
+                                  const char *restrict key)
+ {
+     return cjlib_json_object_get(dst, src->c_dict, key);
+ }
+
+ /**
+  * This function removes the data acociated with the key.
+  * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
+  * @param src A pointer to the json object in which we should put the value.
+  * @param key A string that acociates a value with it. 
+  * @return 0 on success, otherwise -1.
+ */
+ static inline int cjlib_json_remove(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src, 
+                              const char *restrict key)
+ {
+     return cjlib_json_object_remove(dst, src->c_dict, key);
+ }
+#endif
 /**
  * This function open's a json file.
  * @param dst The json object acociated with the json file.
