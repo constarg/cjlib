@@ -2,6 +2,7 @@
     "first_name": "Lee",
     "age": 27,
     "is_student": false,
+    "PhD": null, 
     "work": "writer",
     "sample_of_codes": [800.23, 2123.5, 1232.22],
     "books_1": {

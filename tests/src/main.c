@@ -34,5 +34,5 @@ int main(void)
     // (void)printf("NAME: %s\n", GET_FIRST_NAME(dst));
 
     // // Close the json file.
-    //cjlib_json_close(&json_file);
+    cjlib_json_close(&json_file);
 }

@@ -110,6 +110,7 @@ union cjlib_json_data_disting
     cjlib_json_num c_num;                  // Number
     cjlib_json_bool c_boolean;             // Boolean.
     cjlib_json_object c_obj;               // json object.
+    void *c_null;                          // null
     union cjlib_json_data_disting *c_arr;  // array.
 };
 
@@ -134,7 +135,7 @@ static inline int cjlib_json_init(struct cjlib_json *restrict src)
 static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
 {
     cjlib_dict_destroy(src->c_dict);
-    (void)memset(src, 0x0, sizeof(struct cjlib_json));
+    src->c_dict = NULL;
 }
 
 static inline cjlib_json_object *cjlib_json_make_object(void)
@@ -151,6 +152,8 @@ static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
 
 static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
 {
+    if (NULL == src) return;
+    
     switch (src->c_datatype)
     {
         case CJLIB_STRING:

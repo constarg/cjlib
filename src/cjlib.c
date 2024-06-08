@@ -16,14 +16,15 @@
 #define CURLY_BRACKETS_CLOSE  (0x7D) // ASCII representive of } 
 #define SQUARE_BRACKETS_CLOSE (0x5D) // ASCII representive of ]
 #define COMMMA                (0x2C) // ASCII representive of ,
+#define WHITE_SPACE           (0x20) // ASCII representive of ' '
+#define SEPERATOR             (0x3A) // ASCII representive of :
 
-#define DOUBLE_QUOTES_LIMIT   (0x4)  // How many double auotes can be in a simple property value.
+#define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
+#define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
-enum byte_gathering_opt
-{
-    DONT_GATHER,
-    GETHER 
-};
+#define P_VALUE_IS_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
+#define P_VALUE_IS_ARRAY(VALUE_PTR) (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
+
 
 struct raw_simple_property
 {
@@ -36,8 +37,8 @@ struct raw_simple_property
  */
 struct incomplete_property
 {
-    long int i_value_position; // The position, in file, where the property value is discovered.
-    char *i_name;              // The name of the property which holds the object.
+    char *i_pname; // THe name of the incomplete property.
+    cjlib_json_object i_object; // The object where it belong
 };
 
 static struct cjlib_json_error g_error;
@@ -94,8 +95,9 @@ int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_p
 
 void cjlib_json_close(struct cjlib_json *restrict src)
 {
-    cjlib_dict_destroy(src->c_dict);
+    cjlib_json_destroy(src);
     fclose(src->c_fp);
+    (void)memset(src, 0x0, sizeof(struct cjlib_json));
 }
 
 static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)
@@ -130,6 +132,9 @@ static inline int identify_simple_property(const struct raw_simple_property *res
     } else if (!strcmp(property_value, "true") || !strcmp(property_value, "false")) {
         value_type = CJLIB_BOOLEAN;
         value.c_boolean = (!strcmp(property_value, "true"))? true:false;
+    } else if (!strcmp(property_value, "null")) {
+        value_type = CJLIB_NULL,
+        value.c_null = NULL;
     } else if (is_number(property_value)) {
         value_type = CJLIB_NUMBER;
         value.c_num = strtol(property_value, NULL, 10);
@@ -155,106 +160,159 @@ static inline void decode_simple_property_value(const struct cjlib_json *restric
 {
     struct raw_simple_property raw_property;
 
-    // unsigned char property_byte;
-    // do {
-    //     property_byte = (unsigned char) fgetc(src->c_fp);
-    //     if (feof(src->c_fp)) return -1; // It is an error. 
-
-    //     if (CURLY_BRACKETS_CLOSE == property_byte || COMMMA == property_byte) {
-    //         // TODO - here the property is complete.
-    //     }
-
-
-    // } while 
 
 }
 
-static inline void decode_complex_property_value(const struct cjlib_json *restrict src, const char *p_name)
-{
-
-}
-
-static inline void decode_property(const struct cjlib_json *restrict src)
-{
-
-}
-
-static unsigned char *search_byte_until(FILE *src, unsigned char ch_stop, enum byte_gathering_opt gather)
+static char *parse_property_name(const struct cjlib_json *restrict src)
 {
     unsigned char curr_byte;
-    unsigned char *chunk = NULL; 
-    size_t chunk_init_s = 128;
-    size_t chunk_s = 0;
+    int double_quotes_c = 0;
+    bool found_seperator = false;
 
-    if (gather == GETHER) {
-        chunk = (unsigned char *) malloc(sizeof(char) * chunk_init_s);
-        if (NULL == chunk) return NULL;
+    size_t p_name_init_s = MEMORY_INIT_CHUNK;
+    size_t p_name_s      = 0;
+    
+    char *p_name = (char *) malloc(sizeof(char) * p_name_init_s);
+    if (NULL == p_name) {
+        setup_error("", "", MEMORY_ERROR);
+        return NULL;
     }
 
     do {
-        curr_byte = (unsigned char) fgetc(src);
-        if (feof(src)) return 0;
-
-        if (gather == GETHER) {
-            chunk[chunk_s++] = curr_byte;
-            if (chunk_s == chunk_init_s) {
-                chunk_init_s += chunk_init_s;
-                chunk = (unsigned char *) realloc(chunk, sizeof(char) * chunk_init_s);
-                if (NULL == chunk) return NULL;
-            }
+        curr_byte = (unsigned char) fgetc(src->c_fp);
+        if (feof(src->c_fp)) {
+            p_name[p_name_s] = '\0';
+            setup_error(p_name, "", INVALID_PROPERTY);
+            free(p_name);
+            return NULL;
         }
 
-        if (ch_stop == curr_byte) break;
+        if (WHITE_SPACE == curr_byte) continue; // Check for ' '
+
+        // Check for "
+        if (DOUBLE_QUOTES == curr_byte) ++double_quotes_c;
+        // Check fof :
+        if (SEPERATOR == curr_byte) found_seperator = true;
+
+        if (double_quotes_c > 0) {
+            p_name[p_name_s++] = curr_byte;
+            if ((p_name_s + 1) == p_name_init_s) {
+                p_name_init_s += MEMORY_INIT_CHUNK;
+                p_name = (char *) realloc(p_name, sizeof(char) * p_name_init_s);
+                if (NULL == p_name) {
+                    setup_error("", "", MEMORY_ERROR);
+                    return NULL;
+                }
+            }
+        }
+        // How many double quotes are expected.
+        if (EXP_DOUBLE_QUOTES == double_quotes_c && found_seperator) break;
+        if (found_seperator) {
+            p_name[p_name_s] = '\0';
+            setup_error(p_name, "", MISSING_SEPERATOR);
+            free(p_name);
+            return NULL;
+        }
 
     } while (1);
+    p_name[p_name_s - 1] = '\0'; // -1, to not include the seperator.
 
-    return chunk;
+    p_name = (char *) realloc(p_name, sizeof(char) * p_name_s);
+    if (NULL == p_name) setup_error("", "", MEMORY_ERROR);
+
+    return p_name;
 }
 
-static inline int validate_json(const struct cjlib_json *restrict src)
+static char *parse_property_value(const struct cjlib_json *restrict src, const char *p_name)
 {
     unsigned char curr_byte;
-    int curl_brackets_count   = 0;
-    int square_brackets_count = 0;
-    int double_quotes_count   = 0;
+    int double_quotes_c = 0;
+
+    size_t p_value_init_s = MEMORY_INIT_CHUNK;
+    size_t p_value_s      = 0;
+
+    char *p_value = (char *) malloc(sizeof(char) * p_value_init_s);
+    if (NULL == p_value) {
+        setup_error(p_name, "", MEMORY_ERROR);
+        return NULL;
+    }
+
+    bool is_string = false;
+    bool is_object = false;
+    bool is_array = false;
+    bool type_found = false;
 
     do {
         curr_byte = (unsigned char) fgetc(src->c_fp);
-        if (feof(src->c_fp)) break;
+        if (feof(src->c_fp)) {
+            p_value[p_value_s] = '\0';
+            setup_error(p_name, p_value, INVALID_PROPERTY);
+            free(p_value);
+            return NULL;
+        }
+        if (WHITE_SPACE == curr_byte) continue; // Check for ' '
 
-        if (CURLY_BRACKETS_OPEN == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) ++curl_brackets_count;
-        if (SQUARE_BRACKETS_OPEN == curr_byte || SQUARE_BRACKETS_CLOSE == curr_byte) ++square_brackets_count;
-        if (DOUBLE_QUOTES == curr_byte) ++double_quotes_count;
+        if (DOUBLE_QUOTES == curr_byte && !type_found) is_string = true; // Check for "
+        else if (CURLY_BRACKETS_OPEN  == curr_byte && !type_found) is_object  = true; // Check for {
+        else if (SQUARE_BRACKETS_OPEN == curr_byte && !type_found) is_array   = true; // Check for [
 
+        if (DOUBLE_QUOTES == curr_byte) ++double_quotes_c; // Check for "
+        
+        if ((double_quotes_c > 0 && !is_string) || (double_quotes_c > 2 && is_string)) {
+            p_value[p_value_s] = '\0';
+            setup_error(p_name, p_value, MISSING_COMMA);
+            free(p_value);
+            return NULL;
+        }
+
+        p_value[p_value_s++] = curr_byte;
+        if (p_value_s == p_value_init_s) {
+            p_value_init_s += MEMORY_INIT_CHUNK;
+            p_value = (char *) realloc(p_value, sizeof(char) * p_value_init_s);
+            if (NULL == p_value) {
+                setup_error(p_name, "", MEMORY_ERROR);
+                return NULL;
+            }
+        }
+
+        if (is_object || is_array) break;
+        if (double_quotes_c < 2 && is_string && COMMMA == curr_byte) {
+            p_value[p_value_s] = '\0';
+            setup_error(p_name, p_value, INCOMPLETE_DOUBLE_QUOTES);
+            free(p_value);
+            return NULL;
+        }
+        if (COMMMA == curr_byte) break; // Check for ,
     } while (1);
 
-    rewind(src->c_fp);
+    if (is_object || is_array) {
+        p_value[p_value_s] = '\0';
+    } else {
+        p_value[p_value_s - 1] = '\0'; // -1 stands for: Do not include the comma
+    }
 
-    if (curl_brackets_count % 2 != 0) setup_error("", "", INCOMPLETE_CRULY_BRACKETS);
-    else if (square_brackets_count % 2 != 0) setup_error("", "", INCOMPLETE_SQAURE_BRACKETS);
-    else if (double_quotes_count % 2 != 0) setup_error("", "", INCOMPLETE_DOUBLE_QUOTES);
-    
-    if (g_error.c_error_code != NO_ERROR) return -1;
+    p_value = (char *) realloc(p_value, sizeof(char) * p_value_s);
+    if (NULL == p_value) setup_error(p_name, "", MEMORY_ERROR);
 
-    return 0;
+    return p_value;
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
-    unsigned char curr_byte;
+    char *p_name = parse_property_name((const struct cjlib_json *) dst);
 
-    if (validate_json(dst) == 0) {
-        printf("CORRECT\n");
-    } else {
-        printf("WRONG!!!\n");
-    }
+    if (NULL == p_name) printf("Failed to parse the name\n");
+    else printf("%s\n", p_name);
 
-    // while (1) {
-    //     (void)search_byte_until(dst->c_fp, DOUBLE_QUOTES, DONT_GATHER);
-    //     if (feof(dst->c_fp)) break;
 
-    //     decode_property((const struct cjlib_json *) dst);
-    // }
+    char *p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
+    if (*p_value == CURLY_BRACKETS_OPEN) printf("ITS OBJECT\n");
+
+    if (NULL == p_value) printf("Failed to parse the value\n");
+    else printf("%s\n", p_value);
+
+    free(p_name);
+    free(p_value);
 
     return 0;
 }
