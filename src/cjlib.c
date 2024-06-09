@@ -237,9 +237,9 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         return NULL;
     }
 
-    bool is_string = false;
-    bool is_object = false;
-    bool is_array = false;
+    bool is_string  = false;
+    bool is_object  = false;
+    bool is_array   = false;
     bool type_found = false;
 
     do {
@@ -276,13 +276,13 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         }
 
         if (is_object || is_array) break;
-        if (double_quotes_c < 2 && is_string && COMMMA == curr_byte) {
+        if (double_quotes_c < 2 && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte)) {
             p_value[p_value_s] = '\0';
             setup_error(p_name, p_value, INCOMPLETE_DOUBLE_QUOTES);
             free(p_value);
             return NULL;
-        }
-        if (COMMMA == curr_byte) break; // Check for ,
+        } 
+        if (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) break; // Check for ,
     } while (1);
 
     if (is_object || is_array) {
