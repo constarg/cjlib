@@ -109,21 +109,25 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
 
     bool empty_queue = cjlib_queue_is_empty(&lvl_traversal_q);
     while (CJLIB_BRANCH_LIKELY(!empty_queue)) {
-        // NO if - statement needed to ensure that left or right child is NULL,
-        // cause the queue will reject any NULL source.
         for (size_t i = 0; i < cjlib_queue_size(&lvl_traversal_q); i++) {
             cjlib_queue_deqeue((void *restrict) &tmp, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q);
 
-            if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_left, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;   
-            if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_right, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
+            if (NULL != tmp->avl_left) {
+                if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_left, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;   
+            }
+
+            if (NULL != tmp->avl_right) {
+                if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_right, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
+            }
 
             if (CJLIB_BRANCH_UNLIKELY(delete_nodes)) {
                 cjlib_json_data_destroy(tmp->avl_data);
                 free(tmp->avl_data);
-                free(tmp);
+                //free(tmp);
                 tmp = NULL;
             }
         }
+        empty_queue = cjlib_queue_is_empty(&lvl_traversal_q);
         current_lvl += 1;
     }
     return current_lvl - 1;

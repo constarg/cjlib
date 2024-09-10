@@ -6,7 +6,7 @@
 
 enum cjlib_json_error_types
 {
-    NO_ERROR,
+    NO_ERROR_OR_UNDEFINED,
     INVALID_TYPE,
     INVALID_NAME,
     INVALID_JSON,
@@ -28,17 +28,12 @@ struct cjlib_json_error
     enum cjlib_json_error_types c_error_code; // A error code indicating the error.
 };
 
-static inline void cjlib_json_error_init(struct cjlib_json_error *restrict src)
-{
-    (void)memset(src, 0x0, sizeof(struct cjlib_json_error));
-    src->c_error_code = NO_ERROR;
-}
+extern int cjlib_json_error_init(void);
 
-static inline void cjlib_json_error_destroy(struct cjlib_json_error *restrict src)
-{
-    free(src->c_property_name);
-    free(src->c_property_value);
-}
+extern void cjlib_json_error_destroy(void);
+
+extern void setup_error(const char *property_name, const char *property_value, 
+                        enum cjlib_json_error_types error_code);
 
 extern void cjlib_json_get_error(struct cjlib_json_error *restrict dst);
 

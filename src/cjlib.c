@@ -10,6 +10,7 @@
 #include "cjlib_error.h"
 #include "cjlib_dictionary.h"
 
+
 #define DOUBLE_QUOTES         (0x22) // ASCII representive of "
 #define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representive of { 
 #define SQUARE_BRACKETS_OPEN  (0x5B) // ASCII representive of [
@@ -22,8 +23,9 @@
 #define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
 #define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
-#define P_VALUE_IS_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
-#define P_VALUE_IS_ARRAY(VALUE_PTR) (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
+// Recieves a pointer value which are pointed to a string that may be an object or an array.
+#define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
+#define P_VALUE_BEGIN_ARRAY(VALUE_PTR)  (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
 
 
 struct raw_simple_property
@@ -40,13 +42,6 @@ struct incomplete_property
     char *i_pname; // THe name of the incomplete property.
     cjlib_json_object i_object; // The object where it belong
 };
-
-static struct cjlib_json_error g_error;
-
-void cjlib_json_get_error(struct cjlib_json_error *restrict dst)
-{
-    (void)memcpy(dst, &g_error, sizeof(struct cjlib_json_error));
-}
 
 int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key, 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
@@ -86,10 +81,10 @@ int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict json_p
 {
     FILE *fp = fopen(json_path, modes);
     if (NULL == fp) return -1;
+    if (-1 == cjlib_json_error_init()) return -1;
 
     dst->c_fp = fp;
     cjlib_dict_init(dst->c_dict);
-    cjlib_json_error_init(&g_error);
     return 0;
 }
 
@@ -106,14 +101,6 @@ static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)
         if (isdigit(*src++) == 0) return false;
     }
     return true;
-}
-
-static CJLIB_ALWAYS_INLINE void setup_error(const char *property_name, const char *property_value, 
-                                            enum cjlib_json_error_types error_code)
-{
-    g_error.c_property_name  = strdup(property_name);
-    g_error.c_property_value = strdup(property_value);
-    g_error.c_error_code     = error_code;
 }
 
 static inline int identify_simple_property(const struct raw_simple_property *restrict src)
@@ -159,7 +146,6 @@ static inline int identify_simple_property(const struct raw_simple_property *res
 static inline void decode_simple_property_value(const struct cjlib_json *restrict src, const char *p_name)
 {
     struct raw_simple_property raw_property;
-
 
 }
 
