@@ -95,9 +95,7 @@ enum rotation_after_left_deletion_type
 */
 static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delete_nodes)
 {
-    if (NULL == src) {
-        return -1;
-    }
+    if (NULL == src) return -1;
 
     struct cjlib_queue lvl_traversal_q;
     cjlib_queue_init(&lvl_traversal_q);
@@ -115,7 +113,6 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             if (NULL != tmp->avl_left) {
                 if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_left, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;   
             }
-
             if (NULL != tmp->avl_right) {
                 if (0 != cjlib_queue_enqeue((const void *restrict) &tmp->avl_right, sizeof(struct avl_bs_tree_node **), &lvl_traversal_q)) return -1;
             }
@@ -123,7 +120,7 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             if (CJLIB_BRANCH_UNLIKELY(delete_nodes)) {
                 cjlib_json_data_destroy(tmp->avl_data);
                 free(tmp->avl_data);
-                //free(tmp);
+                free(tmp);
                 tmp = NULL;
             }
         }
@@ -292,7 +289,7 @@ static void balance_rotation(struct avl_bs_tree_node *src, struct avl_bs_tree_no
     }
 
     // Link the node A to the right place from B.
-    if (rotation == LL_ROTATION) {
+    if (LL_ROTATION == rotation) {
         node_A->avl_left  = node_B->avl_right;
         node_B->avl_right = node_A;
     } else {
@@ -486,7 +483,6 @@ int cjlib_dict_insert(const struct cjlib_json_data *restrict src, struct avl_bs_
     }
     perform_rotation_after_insert(parent, dict, compare_keys);
 
-
     return 0;
 }
 
@@ -591,7 +587,7 @@ static void perform_rotation_after_delete(struct avl_bs_tree_node *deleted_node_
         } else if (T_DELETION_ON_RIGHT_CHILD(balance_factor_of_A)) {
             balance_factor_of_B = perform_actions_after_right_deletion(node_A, dict);
         }
-        if (balance_factor_of_B == R0 || balance_factor_of_B == L0) break;
+        if (R0 == balance_factor_of_B || L0 == balance_factor_of_B) break;
 
         prev_node_A = node_A;
         node_A = find_node_A(&balance_factor_of_A, deleted_node_place, (const struct avl_bs_tree_node **) dict);
@@ -659,7 +655,7 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
 size_t cjlib_dict_destroy(cjlib_dict_t *dict)
 {
     size_t size = lvl_order_traversal(dict, T_DELETE_NODES);
-    free(dict);
+    //free(dict);
 
     return size;
 }

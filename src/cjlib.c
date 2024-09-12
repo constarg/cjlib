@@ -9,7 +9,7 @@
 #include "cjlib.h"
 #include "cjlib_error.h"
 #include "cjlib_dictionary.h"
-
+#include "cjlib_stack.h"
 
 #define DOUBLE_QUOTES         (0x22) // ASCII representive of "
 #define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representive of { 
@@ -27,20 +27,20 @@
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
 #define P_VALUE_BEGIN_ARRAY(VALUE_PTR)  (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
 
-
 struct raw_simple_property
 {
     char *p_name;   // The raw name of the property.
     char *p_value;  // The raw value of the property (as it is in the file)
 };
 
-/**
- * This structure represent an object which is not decoded yet.
- */
 struct incomplete_property
 {
-    char *i_pname; // THe name of the incomplete property.
-    cjlib_json_object i_object; // The object where it belong
+    enum cjlib_json_datatypes i_type;    // The type of the incomplete data (either array or object).
+    char *i_name;                        // The name of the property that holds the incomplete data (in case of root object is NULL).
+    union {
+        cjlib_json_object object;        // The incomplete data is an object.
+        struct cjlib_json_data *array;   // The incomplete data is an array.
+    } i_data;
 };
 
 int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key, 
@@ -138,7 +138,6 @@ static inline int identify_simple_property(const struct raw_simple_property *res
     }
     property.c_datatype = value_type;
     property.c_value    = value;
-
     
     return 0;
 }
@@ -157,7 +156,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
 
     size_t p_name_init_s = MEMORY_INIT_CHUNK;
     size_t p_name_s      = 0;
-    
+
     char *p_name = (char *) malloc(sizeof(char) * p_name_init_s);
     if (NULL == p_name) {
         setup_error("", "", MEMORY_ERROR);
@@ -243,7 +242,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         else if (SQUARE_BRACKETS_OPEN == curr_byte && !type_found) is_array   = true; // Check for [
 
         if (DOUBLE_QUOTES == curr_byte) ++double_quotes_c; // Check for "
-        
+
         if ((double_quotes_c > 0 && !is_string) || (double_quotes_c > 2 && is_string)) {
             p_value[p_value_s] = '\0';
             setup_error(p_name, p_value, MISSING_COMMA);
@@ -271,13 +270,15 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         if (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) break; // Check for ,
     } while (1);
 
-    if (is_object || is_array) {
-        p_value[p_value_s] = '\0';
-    } else {
-        p_value[p_value_s - 1] = '\0'; // -1 stands for: Do not include the comma
-    }
+    p_value[p_value_s] = '\0';
 
-    p_value = (char *) realloc(p_value, sizeof(char) * p_value_s);
+    // if (is_object || is_array) {
+    //     p_value[p_value_s] = '\0';
+    // } else {
+    //     p_value[p_value_s] = '\0'; // -1 stands for: Do not include the comma
+    // }
+
+    p_value = (char *) realloc(p_value, sizeof(char) * (p_value_s + 1));
     if (NULL == p_value) setup_error(p_name, "", MEMORY_ERROR);
 
     return p_value;
@@ -285,17 +286,67 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
-    char *p_name = parse_property_name((const struct cjlib_json *) dst);
 
-    if (NULL == p_name) printf("Failed to parse the name\n");
-    else printf("%s\n", p_name);
+    /**
+     * TODO 
+     *  Algorithm description for objects:
+     *  1. Create an incomplete object.
+     *  2. Start filling the imcomplete object with elements until the close brackets '}' symbol show up.
+     *  3. if filling process a open bracket show up '{', then put the currently incomplete object in a stacK and go to step 1.
+     */
 
+    /**
+     * TODO 
+     *  Algorithm description for arrays:
+     *  1. If on filling process of the incomplete object an open square bracket show up '[' create an incomplete array.
+     *  2. Start the filling process as it is an object, except that there are no names coresponded for each value.
+     *  3. IF an object show up, indicating by open curly bracket '{', when create a new imcomplete object.
+     */
 
-    char *p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
-    if (*p_value == CURLY_BRACKETS_OPEN) printf("ITS OBJECT\n");
+    struct cjlib_stack incomplate_data_stc;
+    struct incomplete_property curr_incomplete_data;
+    struct incomplete_property tmp_data;
+    struct cjlib_json_data complete_data;
 
-    if (NULL == p_value) printf("Failed to parse the value\n");
-    else printf("%s\n", p_value);
+    char compl_indicator = CURLY_BRACKETS_CLOSE; // A byte which indicate that the currently incomplete data are complete.
+    char *p_value;
+    char *p_name;
+
+    cjlib_stack_init(&incomplate_data_stc);
+
+    curr_incomplete_data.i_name        = NULL;          // cause is the root object.
+    curr_incomplete_data.i_data.object = dst->c_dict;
+    curr_incomplete_data.i_type        = CJLIB_OBJECT;
+
+    // Push the first incomplete object into the stack.
+    if (-1 == cjlib_stack_push(((void *) &curr_incomplete_data, sizeof(struct incomplete_property), incomplate_data_stc))) return -1;
+
+    while (!cjlib_stack_is_empty(incomplate_data_stc)) {
+        // TODO - make the whole process here.
+
+        if (compl_indicator == *p_value[strlen(p_value) - 1]) {
+            if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), incomplate_data_stc)) return -1;
+            complete_data.c_datatype = tmp_data.i_type;
+            if (NULL == tmp_data.i_name) {
+                // TODO - then is root.
+            } else {
+                // TODO - then is not root, push the data into the AVL tree.
+            }
+        }
+        
+    }
+
+    // char *p_name = parse_property_name((const struct cjlib_json *) dst);
+
+    // if (NULL == p_name) printf("Failed to parse the name\n");
+    // else printf("%s\n", p_name);
+
+    // char *p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
+    // if (*p_value == CURLY_BRACKETS_OPEN) {
+    // }
+    
+    // if (NULL == p_value) printf("Failed to parse the value\n");
+    // else printf("%s\n", p_value);
 
     free(p_name);
     free(p_value);

@@ -6,7 +6,8 @@
 
 enum cjlib_json_error_types
 {
-    NO_ERROR_OR_UNDEFINED,
+    NO_ERROR,
+    UNDEFINED,
     INVALID_TYPE,
     INVALID_NAME,
     INVALID_JSON,
@@ -36,5 +37,7 @@ extern void setup_error(const char *property_name, const char *property_value,
                         enum cjlib_json_error_types error_code);
 
 extern void cjlib_json_get_error(struct cjlib_json_error *restrict dst);
+
+extern enum cjlib_json_error_types error_indicator_correction(int func_err_code);
 
 #endif

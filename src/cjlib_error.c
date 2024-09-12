@@ -8,7 +8,7 @@ static mtx_t g_error_mtx;
 int cjlib_json_error_init(void)
 {
     (void)memset(&g_error, 0x0, sizeof(struct cjlib_json_error));
-    g_error.c_error_code = NO_ERROR_OR_UNDEFINED;
+    g_error.c_error_code = NO_ERROR;
 
     if (thrd_error == mtx_init(&g_error_mtx, mtx_plain)) return -1;
 
@@ -29,7 +29,7 @@ void cjlib_json_get_error(struct cjlib_json_error *restrict dst)
 }
 
 void setup_error(const char *property_name, const char *property_value, 
-                enum cjlib_json_error_types error_code)
+                 enum cjlib_json_error_types error_code)
 {
     // Lock the mutex, in order to be thread safe.
     if (thrd_error == mtx_lock(&g_error_mtx)) return;
@@ -40,4 +40,13 @@ void setup_error(const char *property_name, const char *property_value,
 
     // Unlock the mutex.
     if (thrd_error == mtx_unlock(&g_error_mtx)) return;
+}
+
+enum cjlib_json_error_types error_indicator_correction(int func_err_code) 
+{
+    if (NO_ERROR == g_error.c_error_code && func_err_code < 0) {
+        g_error.c_error_code = UNDEFINED;
+        return UNDEFINED;
+    }
+    return NO_ERROR;
 }
