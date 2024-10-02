@@ -33,11 +33,11 @@ extern int cjlib_json_error_init(void);
 
 extern void cjlib_json_error_destroy(void);
 
-extern void setup_error(const char *property_name, const char *property_value, 
-                        enum cjlib_json_error_types error_code);
+extern void cjlib_setup_error(const char *property_name, const char *property_value, 
+                              enum cjlib_json_error_types error_code);
 
 extern void cjlib_json_get_error(struct cjlib_json_error *restrict dst);
 
-extern enum cjlib_json_error_types error_indicator_correction(int func_err_code);
+extern enum cjlib_json_error_types cjlib_error_indicator_correction(int func_err_code);
 
 #endif

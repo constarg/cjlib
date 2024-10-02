@@ -28,7 +28,7 @@ void cjlib_json_get_error(struct cjlib_json_error *restrict dst)
     (void)memcpy(dst, &g_error, sizeof(struct cjlib_json_error));
 }
 
-void setup_error(const char *property_name, const char *property_value, 
+void cjlib_setup_error(const char *property_name, const char *property_value, 
                  enum cjlib_json_error_types error_code)
 {
     // Lock the mutex, in order to be thread safe.
@@ -42,7 +42,7 @@ void setup_error(const char *property_name, const char *property_value,
     if (thrd_error == mtx_unlock(&g_error_mtx)) return;
 }
 
-enum cjlib_json_error_types error_indicator_correction(int func_err_code) 
+enum cjlib_json_error_types cjlib_error_indicator_correction(int func_err_code) 
 {
     if (NO_ERROR == g_error.c_error_code && func_err_code < 0) {
         g_error.c_error_code = UNDEFINED;

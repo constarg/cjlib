@@ -3,17 +3,19 @@
 
 #include "cjlib_stack.h"
 
-void cjlib_stack_pop(void *restrict dst, size_t d_size, struct cjlib_stack *restrict src)
+int cjlib_stack_pop(void *restrict dst, size_t d_size, struct cjlib_stack *restrict src)
 {
-    if (NULL == src || NULL == dst) return;
+    if (NULL == src || NULL == dst) return -1;
 
     struct cjlib_stack_node *top_node = src->s_top;
-    if (NULL == top_node) return;
+    if (NULL == top_node) return -1;
     src->s_top = src->s_top->s_next;
 
     (void)memcpy(dst, top_node->s_data, d_size);
     free(top_node->s_data);
     free(top_node);
+
+    return 0;
 }
 
 int cjlib_stack_push(const void *restrict src, size_t s_size, struct cjlib_stack *restrict stack)

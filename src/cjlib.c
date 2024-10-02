@@ -23,6 +23,9 @@
 #define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
 #define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
+#define ROOT_PROPERTY_NAME    (WHITE_SPACE) // A name used to represent the begining of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
+
+
 // Recieves a pointer value which are pointed to a string that may be an object or an array.
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
 #define P_VALUE_BEGIN_ARRAY(VALUE_PTR)  (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
@@ -36,9 +39,9 @@ struct raw_simple_property
 struct incomplete_property
 {
     enum cjlib_json_datatypes i_type;    // The type of the incomplete data (either array or object).
-    char *i_name;                        // The name of the property that holds the incomplete data (in case of root object is NULL).
+    char *i_name;                        // The name of the property that holds the incomplete data (in case of root object is WHITE_SPACE).
     union {
-        cjlib_json_object object;        // The incomplete data is an object.
+        cjlib_json_object *object;       // The incomplete data is an object.
         struct cjlib_json_data *array;   // The incomplete data is an array.
     } i_data;
 };
@@ -126,14 +129,14 @@ static inline int identify_simple_property(const struct raw_simple_property *res
         value_type = CJLIB_NUMBER;
         value.c_num = strtol(property_value, NULL, 10);
     } else {
-        setup_error(src->p_name, src->p_value, INVALID_TYPE);
+        cjlib_setup_error(src->p_name, src->p_value, INVALID_TYPE);
         return -1;
     }
 
     // TODO - check whether to free the memory of property name and value.
 
     if (value_type == CJLIB_NUMBER && (LONG_MAX == value.c_num || LONG_MIN == value.c_num)) {
-        setup_error(src->p_name, src->p_value, INVALID_NUMBER);
+        cjlib_setup_error(src->p_name, src->p_value, INVALID_NUMBER);
         return -1;
     }
     property.c_datatype = value_type;
@@ -159,7 +162,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
 
     char *p_name = (char *) malloc(sizeof(char) * p_name_init_s);
     if (NULL == p_name) {
-        setup_error("", "", MEMORY_ERROR);
+        cjlib_setup_error("", "", MEMORY_ERROR);
         return NULL;
     }
 
@@ -167,7 +170,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
         curr_byte = (unsigned char) fgetc(src->c_fp);
         if (feof(src->c_fp)) {
             p_name[p_name_s] = '\0';
-            setup_error(p_name, "", INVALID_PROPERTY);
+            cjlib_setup_error(p_name, "", INVALID_PROPERTY);
             free(p_name);
             return NULL;
         }
@@ -185,7 +188,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
                 p_name_init_s += MEMORY_INIT_CHUNK;
                 p_name = (char *) realloc(p_name, sizeof(char) * p_name_init_s);
                 if (NULL == p_name) {
-                    setup_error("", "", MEMORY_ERROR);
+                    cjlib_setup_error("", "", MEMORY_ERROR);
                     return NULL;
                 }
             }
@@ -194,7 +197,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
         if (EXP_DOUBLE_QUOTES == double_quotes_c && found_seperator) break;
         if (found_seperator) {
             p_name[p_name_s] = '\0';
-            setup_error(p_name, "", MISSING_SEPERATOR);
+            cjlib_setup_error(p_name, "", MISSING_SEPERATOR);
             free(p_name);
             return NULL;
         }
@@ -203,7 +206,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
     p_name[p_name_s - 1] = '\0'; // -1, to not include the seperator.
 
     p_name = (char *) realloc(p_name, sizeof(char) * p_name_s);
-    if (NULL == p_name) setup_error("", "", MEMORY_ERROR);
+    if (NULL == p_name) cjlib_setup_error("", "", MEMORY_ERROR);
 
     return p_name;
 }
@@ -218,7 +221,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 
     char *p_value = (char *) malloc(sizeof(char) * p_value_init_s);
     if (NULL == p_value) {
-        setup_error(p_name, "", MEMORY_ERROR);
+        cjlib_setup_error(p_name, "", MEMORY_ERROR);
         return NULL;
     }
 
@@ -231,7 +234,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         curr_byte = (unsigned char) fgetc(src->c_fp);
         if (feof(src->c_fp)) {
             p_value[p_value_s] = '\0';
-            setup_error(p_name, p_value, INVALID_PROPERTY);
+            cjlib_setup_error(p_name, p_value, INVALID_PROPERTY);
             free(p_value);
             return NULL;
         }
@@ -245,7 +248,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 
         if ((double_quotes_c > 0 && !is_string) || (double_quotes_c > 2 && is_string)) {
             p_value[p_value_s] = '\0';
-            setup_error(p_name, p_value, MISSING_COMMA);
+            cjlib_setup_error(p_name, p_value, MISSING_COMMA);
             free(p_value);
             return NULL;
         }
@@ -255,7 +258,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
             p_value_init_s += MEMORY_INIT_CHUNK;
             p_value = (char *) realloc(p_value, sizeof(char) * p_value_init_s);
             if (NULL == p_value) {
-                setup_error(p_name, "", MEMORY_ERROR);
+                cjlib_setup_error(p_name, "", MEMORY_ERROR);
                 return NULL;
             }
         }
@@ -263,7 +266,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         if (is_object || is_array) break;
         if (double_quotes_c < 2 && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte)) {
             p_value[p_value_s] = '\0';
-            setup_error(p_name, p_value, INCOMPLETE_DOUBLE_QUOTES);
+            cjlib_setup_error(p_name, p_value, INCOMPLETE_DOUBLE_QUOTES);
             free(p_value);
             return NULL;
         } 
@@ -279,7 +282,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
     // }
 
     p_value = (char *) realloc(p_value, sizeof(char) * (p_value_s + 1));
-    if (NULL == p_value) setup_error(p_name, "", MEMORY_ERROR);
+    if (NULL == p_value) cjlib_setup_error(p_name, "", MEMORY_ERROR);
 
     return p_value;
 }
@@ -314,26 +317,30 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
     cjlib_stack_init(&incomplate_data_stc);
 
-    curr_incomplete_data.i_name        = NULL;          // cause is the root object.
+    curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object.
     curr_incomplete_data.i_data.object = dst->c_dict;
     curr_incomplete_data.i_type        = CJLIB_OBJECT;
 
     // Push the first incomplete object into the stack.
-    if (-1 == cjlib_stack_push(((void *) &curr_incomplete_data, sizeof(struct incomplete_property), incomplate_data_stc))) return -1;
+    if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) return -1;
 
-    while (!cjlib_stack_is_empty(incomplate_data_stc)) {
+    while (!cjlib_stack_is_empty(&incomplate_data_stc)) {
         // TODO - make the whole process here.
+        // TODO - Check if any property has the name $WHITE_SPACE, in this case return -1 and put the respective error message into the error variable.
+        p_name = parse_property_name((const struct cjlib_json  *) dst);
+        if (NULL == p_name) printf("Failed to parse the name\n");
 
-        if (compl_indicator == *p_value[strlen(p_value) - 1]) {
-            if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), incomplate_data_stc)) return -1;
+        p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
+        if (NULL == p_value) printf("Failed to parse the value of the property\n");
+
+        if (compl_indicator == p_value[strlen(p_value) - 1]) {
+            if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) return -1;
             complete_data.c_datatype = tmp_data.i_type;
-            if (NULL == tmp_data.i_name) {
-                // TODO - then is root.
-            } else {
+            // TODO - build the rest of the complete data, to put on the AVL tree.
+            if (NULL != tmp_data.i_name) {
                 // TODO - then is not root, push the data into the AVL tree.
             }
         }
-        
     }
 
     // char *p_name = parse_property_name((const struct cjlib_json *) dst);

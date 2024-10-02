@@ -48,7 +48,7 @@ extern int cjlib_stack_push(const void *restrict src, size_t s_size, struct cjli
  * @param src    The stack from which the data will be removed.
  * @return 0 on success, otherwise -1.
  */
-extern void cjlib_stack_pop(void *restrict dst, size_t d_size, struct cjlib_stack *restrict src);
+extern int cjlib_stack_pop(void *restrict dst, size_t d_size, struct cjlib_stack *restrict src);
 
 /**
  * Checks whether the stack is empty or not.

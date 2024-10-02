@@ -233,7 +233,8 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
 static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict dst, const char *restrict key,
                                            const struct cjlib_json_data *restrict value)
 {
-    dst->avl_key  = (char *) key;
+    //dst->avl_key  = (char *) key; // WRONG METHOD. Removed.
+    dst->avl_key  = (char *) strdup(key);
     dst->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
     if (NULL == dst->avl_data) return -1;
 
@@ -646,6 +647,7 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
 
     perform_rotation_after_delete(removed, dict);
     
+    free(removed->avl_key); // TODO - must validate. SEE assign_key_value_node (changed: strdup added for better malloc tracking).
     free(removed->avl_data);
     free(removed);
     removed = NULL;
