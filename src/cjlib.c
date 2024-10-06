@@ -23,7 +23,7 @@
 #define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
 #define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
-#define ROOT_PROPERTY_NAME    (WHITE_SPACE) // A name used to represent the begining of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
+#define ROOT_PROPERTY_NAME    ("") // A name used to represent the begining of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
 
 
 // Recieves a pointer value which are pointed to a string that may be an object or an array.
@@ -317,7 +317,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
     cjlib_stack_init(&incomplate_data_stc);
 
-    curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object.
+    curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object. (TODO - free this.)
     curr_incomplete_data.i_data.object = dst->c_dict;
     curr_incomplete_data.i_type        = CJLIB_OBJECT;
 
@@ -332,6 +332,13 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
         if (NULL == p_value) printf("Failed to parse the value of the property\n");
+        
+        if (P_VALUE_BEGIN_OBJECT(p_value)) {
+            // TODO - here is the case where an nested object is detected.
+        } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
+            // TODO - here is the case where an array is detected.
+        }
+
 
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
             if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) return -1;
@@ -355,8 +362,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     // if (NULL == p_value) printf("Failed to parse the value\n");
     // else printf("%s\n", p_value);
 
-    free(p_name);
-    free(p_value);
 
     return 0;
 }

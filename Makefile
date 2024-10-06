@@ -1,6 +1,11 @@
 obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o ./build/cjlib_stack.o ./build/cjlib_error.o
 obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o ./build/cjlib_stack_debug.o ./build/cjlib_error_debug.o
 
+test_file_dir = ./tests/bin/
+
+test_file = main.out
+test_file_debug = main_debug.out
+
 GCC = gcc
 header_loc = -I ./include/ -I ./src/include/
 
@@ -12,6 +17,24 @@ all: dir_make ${obj_files}
 
 debug: dir_make ${obj_files_debug}
 	ar rcs ./lib/libcjlib_debug.a ${obj_files_debug}
+
+build_test_debug:
+	cd tests/ && make debug
+
+build_test:
+	cd tests/ && make 
+
+run_test_debug: build_test_debug ${test_file_dir}${test_file_debug}
+	cd ${test_file_dir} && ./${test_file_debug}
+
+run_test_debug_check: build_test_debug ${test_file_dir}${test_file_debug}
+	cd ${test_file_dir} && valgrind ./${test_file_debug}
+
+run_test: build_test ${test_file_dir}${test_file}
+	cd ${test_file_dir} && ./${test_file}
+
+run_test_check: build_test_debug ${test_file_dir}${test_file_debug}
+	cd ${test_file_dir} && valgrind ./${test_file}
 
 ./build/cjlib.o: ./src/cjlib.c
 	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib.c -o ./build/cjlib.o
