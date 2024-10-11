@@ -60,3 +60,5 @@ tests/build/
 tests/bin/
 
 vgcore.*
+src/.prettierrc
+tests/.prettierrc

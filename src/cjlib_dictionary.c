@@ -184,6 +184,8 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
     int compare_key = 0;
     while (curr_node) {
         compare_key = strcmp(key, curr_node->avl_key);
+        
+        if (compare_key == 0) break;
         if (compare_key > 0 || compare_key < 0) curr_parent = curr_node;
 
         if (compare_key > 0) {
@@ -492,7 +494,6 @@ static CJLIB_ALWAYS_INLINE void r0_rotation(struct avl_bs_tree_node *restrict sr
     // LL
     ll_rotation(src, dict);
 }
-
 
 static CJLIB_ALWAYS_INLINE void r1_rotation(struct avl_bs_tree_node *restrict src, struct avl_bs_tree_node **restrict dict)
 {

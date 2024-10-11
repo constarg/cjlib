@@ -28,13 +28,13 @@ run_test_debug: build_test_debug ${test_file_dir}${test_file_debug}
 	cd ${test_file_dir} && ./${test_file_debug}
 
 run_test_debug_check: build_test_debug ${test_file_dir}${test_file_debug}
-	cd ${test_file_dir} && valgrind ./${test_file_debug}
+	cd ${test_file_dir} && valgrind --leak-check=full ./${test_file_debug}
 
 run_test: build_test ${test_file_dir}${test_file}
 	cd ${test_file_dir} && ./${test_file}
 
 run_test_check: build_test_debug ${test_file_dir}${test_file_debug}
-	cd ${test_file_dir} && valgrind ./${test_file}
+	cd ${test_file_dir} && valgrind --leak-check=full ./${test_file}
 
 ./build/cjlib.o: ./src/cjlib.c
 	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib.c -o ./build/cjlib.o

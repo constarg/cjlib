@@ -20,6 +20,8 @@
 #define WHITE_SPACE           (0x20) // ASCII representive of ' '
 #define SEPERATOR             (0x3A) // ASCII representive of :
 
+#define NEW_LINE              (0x0A) // ASCII representive of \n 
+
 #define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
 #define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
@@ -29,12 +31,6 @@
 // Recieves a pointer value which are pointed to a string that may be an object or an array.
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
 #define P_VALUE_BEGIN_ARRAY(VALUE_PTR)  (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
-
-struct raw_simple_property
-{
-    char *p_name;   // The raw name of the property.
-    char *p_value;  // The raw value of the property (as it is in the file)
-};
 
 struct incomplete_property
 {
@@ -106,9 +102,23 @@ static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)
     return true;
 }
 
-static inline int identify_simple_property(const struct raw_simple_property *restrict src)
+static CJLIB_ALWAYS_INLINE char *trim_double_quotes(const char *src) 
 {
-    char *property_value = src->p_value;
+    char *tmp = strdup(src);
+    size_t tmp_s = strlen(tmp);
+    if (NULL == tmp) return NULL;
+
+    (void)memmove(tmp, tmp + 1, tmp_s);
+    tmp[tmp_s - 2] = '\0';
+
+    return (char *) realloc(tmp, sizeof(char) * (tmp_s - 1));
+}
+
+static inline int type_decoder(struct cjlib_json_data *restrict dst, const char *p_name, const char *p_value)
+{
+    char *property_value = strdup(p_value);
+    if (NULL == property_value) return -1;
+    
     size_t property_len = strlen(property_value);
 
     enum cjlib_json_datatypes value_type;
@@ -116,9 +126,15 @@ static inline int identify_simple_property(const struct raw_simple_property *res
     struct cjlib_json_data property;
 
     // build the data that is going to be inserted in the json.
+    // The following if is required to find the problem in which a commma or a close bracket appeared on the end of a string.
+    if (CURLY_BRACKETS_CLOSE == property_value[property_len - 1] || COMMMA == property_value[property_len - 1]) {
+        property_value[property_len - 1] = '\0';
+        --property_len;
+    }
+
     if (DOUBLE_QUOTES == property_value[0] && DOUBLE_QUOTES == property_value[property_len - 1]) { // Check for "
         value_type = CJLIB_STRING;
-        value.c_str = strdup(property_value);
+        value.c_str = trim_double_quotes(property_value);
     } else if (!strcmp(property_value, "true") || !strcmp(property_value, "false")) {
         value_type = CJLIB_BOOLEAN;
         value.c_boolean = (!strcmp(property_value, "true"))? true:false;
@@ -129,26 +145,21 @@ static inline int identify_simple_property(const struct raw_simple_property *res
         value_type = CJLIB_NUMBER;
         value.c_num = strtol(property_value, NULL, 10);
     } else {
-        cjlib_setup_error(src->p_name, src->p_value, INVALID_TYPE);
+        cjlib_setup_error(p_name, p_value, INVALID_TYPE);
         return -1;
     }
 
-    // TODO - check whether to free the memory of property name and value.
-
     if (value_type == CJLIB_NUMBER && (LONG_MAX == value.c_num || LONG_MIN == value.c_num)) {
-        cjlib_setup_error(src->p_name, src->p_value, INVALID_NUMBER);
+        cjlib_setup_error(p_name, p_value, INVALID_NUMBER);
+        free(property_value);
         return -1;
     }
     property.c_datatype = value_type;
     property.c_value    = value;
     
+    (void)memcpy(dst, &property, sizeof(struct cjlib_json_data));
+    free(property_value);
     return 0;
-}
-
-static inline void decode_simple_property_value(const struct cjlib_json *restrict src, const char *p_name)
-{
-    struct raw_simple_property raw_property;
-
 }
 
 static char *parse_property_name(const struct cjlib_json *restrict src)
@@ -239,6 +250,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
             return NULL;
         }
         if (WHITE_SPACE == curr_byte) continue; // Check for ' '
+        if (NEW_LINE == curr_byte) continue; // Check for \n
 
         if (DOUBLE_QUOTES == curr_byte && !type_found) is_string = true; // Check for "
         else if (CURLY_BRACKETS_OPEN  == curr_byte && !type_found) is_object  = true; // Check for {
@@ -287,6 +299,16 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
     return p_value;
 }
 
+static CJLIB_ALWAYS_INLINE int configure_nested_object(struct incomplete_property *restrict src, const char *p_name)
+{
+    src->i_name = strdup(p_name);
+    src->i_data.object = cjlib_make_dict();
+    cjlib_dict_init(src->i_data.object);
+    if (NULL == src->i_data.object) return -1;
+    src->i_type = CJLIB_OBJECT;
+    return 0;
+}
+
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
 
@@ -312,8 +334,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     struct cjlib_json_data complete_data;
 
     char compl_indicator = CURLY_BRACKETS_CLOSE; // A byte which indicate that the currently incomplete data are complete.
-    char *p_value;
-    char *p_name;
+    char *p_value = NULL;
+    char *p_name  = NULL;
+    char *p_name_trimmed = NULL;
 
     cjlib_stack_init(&incomplate_data_stc);
 
@@ -322,11 +345,12 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     curr_incomplete_data.i_type        = CJLIB_OBJECT;
 
     // Push the first incomplete object into the stack.
-    if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) return -1;
+    if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
 
     while (!cjlib_stack_is_empty(&incomplate_data_stc)) {
         // TODO - make the whole process here.
         // TODO - Check if any property has the name $WHITE_SPACE, in this case return -1 and put the respective error message into the error variable.
+        
         p_name = parse_property_name((const struct cjlib_json  *) dst);
         if (NULL == p_name) printf("Failed to parse the name\n");
 
@@ -334,36 +358,42 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (NULL == p_value) printf("Failed to parse the value of the property\n");
         
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
-            // TODO - here is the case where an nested object is detected.
+            if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
+            continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
             // TODO - here is the case where an array is detected.
-        }
+            continue;
+        } 
+        
+        if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
 
+        p_name_trimmed = trim_double_quotes(p_name);
+        if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
 
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
-            if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) return -1;
+            if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
             complete_data.c_datatype = tmp_data.i_type;
             // TODO - build the rest of the complete data, to put on the AVL tree.
-            if (NULL != tmp_data.i_name) {
+            if (!strcmp(tmp_data.i_name, "")) {
                 // TODO - then is not root, push the data into the AVL tree.
             }
-        }
+
+            free(tmp_data.i_name);
+        } 
+
+        free(p_name);
+        free(p_value);
+        free(p_name_trimmed);
     }
 
-    // char *p_name = parse_property_name((const struct cjlib_json *) dst);
-
-    // if (NULL == p_name) printf("Failed to parse the name\n");
-    // else printf("%s\n", p_name);
-
-    // char *p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
-    // if (*p_value == CURLY_BRACKETS_OPEN) {
-    // }
-    
-    // if (NULL == p_value) printf("Failed to parse the value\n");
-    // else printf("%s\n", p_value);
-
-
     return 0;
+
+read_err:
+    free(p_name);
+    free(p_value);
+    free(p_name_trimmed);
+
+    return -1;
 }
 
 char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
