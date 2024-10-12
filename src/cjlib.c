@@ -293,14 +293,51 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
     return p_value;
 }
 
-static CJLIB_ALWAYS_INLINE int configure_nested_object(struct incomplete_property *restrict src, const char *p_name)
+static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *restrict src, const char *p_name, 
+                                                void **restrict data, enum cjlib_json_datatypes p_type)
 {
     src->i_name = strdup(p_name);
     if (NULL == src->i_name) return -1;
-    src->i_data.object = cjlib_make_dict();
-    if (NULL == src->i_data.object) return -1;
-    src->i_type = CJLIB_OBJECT;
+
+    switch (p_type)
+    {
+        case CJLIB_OBJECT:
+            *((cjlib_json_object **) data) = cjlib_make_dict();
+            break;
+        case CJLIB_ARRAY:
+            *((union cjlib_json_data_disting **) data) = cjlib_make_json_array();
+            break;
+        default:
+            break;
+    }
+    if (NULL == *data) return -1;
+
     return 0;
+}
+
+static CJLIB_ALWAYS_INLINE int configure_nested_object(struct incomplete_property *restrict src, const char *p_name)
+{
+    // src->i_name = strdup(p_name);
+    // if (NULL == src->i_name) return -1;
+    // src->i_data.object = cjlib_make_dict();
+    // if (NULL == src->i_data.object) return -1;
+    // src->i_type = CJLIB_OBJECT;
+
+    src->i_type = CJLIB_OBJECT;
+    return configure_common(src, p_name, (void *) &src->i_data.object, CJLIB_OBJECT);
+}
+
+static CJLIB_ALWAYS_INLINE int configure_array(struct incomplete_property *restrict src, const char *p_name)
+{
+    // src->i_name = strdup(p_name);
+    // if (NULL == src->i_name) return -1;
+    // src->i_data.array = cjlib_make_json_array(arr_size);
+    // if (NULL == src->i_data.array) return -1;
+    // src->i_type = CJLIB_ARRAY;
+    // return 0;
+
+    src->i_type = CJLIB_ARRAY;
+    return configure_common(src, p_name, (void *) &src->i_data.array, CJLIB_ARRAY);
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
@@ -366,8 +403,12 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         
         if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
 
-        p_name_trimmed = trim_double_quotes(p_name);
-        if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
+        if (SQUARE_BRACKETS_CLOSE != compl_indicator) {
+            p_name_trimmed = trim_double_quotes(p_name);
+            if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
+        } else {
+            // TODO - here instead of dictionary, the data must be insterted in an array.
+        }
 
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
             if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;

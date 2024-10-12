@@ -79,6 +79,8 @@ typedef cjlib_dict_t cjlib_json_object;
 // Retreive the Array which is inside the data.
 #define CJLIB_GET_ARRAY(CJLIB_DATA)  (CJLIB_DATA.c_value.c_arr)
 
+#define CJLIB_ARRAY_INIT_SIZE 200
+
 /**
  * The available datatypes, that json support.
 */
@@ -169,24 +171,18 @@ static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
     }
 }
 
-static inline struct cjlib_json_data *cjlib_make_json_array(size_t size)
+static inline union cjlib_json_data_disting *cjlib_make_json_array(void)
 {
-    struct cjlib_json_data *data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
-    data->c_datatype    = CJLIB_ARRAY;
-    data->c_value.c_arr = (union cjlib_json_data_disting *) malloc(sizeof(struct cjlib_json_disting) * size);
-    if (NULL == data->c_value.c_arr) return NULL;
-
-    return data;
+    return (union cjlib_json_data_disting *) malloc(sizeof(union cjlib_json_data_disting) * CJLIB_ARRAY_INIT_SIZE);
 }
 
-static inline struct cjlib_json_data *cjlib_adjust_array_size(const struct cjlib_json_data *restrict src, size_t adj_size)
+static inline struct cjlib_json_data *cjlib_adjust_array_size(union cjlib_json_data_disting *restrict src, size_t adj_size)
 {
-    return (struct cjlib_json_data *) realloc(src->c_value.c_arr, sizeof(struct cjlib_json_disting) * adj_size);
+    return (struct cjlib_json_data *) realloc(src, sizeof(union cjlib_json_data_disting) * adj_size);
 }
 
-static inline void cjlib_json_free_array(struct cjlib_json_data *src) 
+static inline void cjlib_json_free_array(union cjlib_json_data_disting *src) 
 {
-    free(src->c_value.c_arr);
     free(src);
 }
 
