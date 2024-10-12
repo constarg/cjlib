@@ -287,12 +287,6 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 
     p_value[p_value_s] = '\0';
 
-    // if (is_object || is_array) {
-    //     p_value[p_value_s] = '\0';
-    // } else {
-    //     p_value[p_value_s] = '\0'; // -1 stands for: Do not include the comma
-    // }
-
     p_value = (char *) realloc(p_value, sizeof(char) * (p_value_s + 1));
     if (NULL == p_value) cjlib_setup_error(p_name, "", MEMORY_ERROR);
 
@@ -302,8 +296,8 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 static CJLIB_ALWAYS_INLINE int configure_nested_object(struct incomplete_property *restrict src, const char *p_name)
 {
     src->i_name = strdup(p_name);
+    if (NULL == src->i_name) return -1;
     src->i_data.object = cjlib_make_dict();
-    cjlib_dict_init(src->i_data.object);
     if (NULL == src->i_data.object) return -1;
     src->i_type = CJLIB_OBJECT;
     return 0;
@@ -341,6 +335,8 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     cjlib_stack_init(&incomplate_data_stc);
 
     curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object. (TODO - free this.)
+    if (NULL == curr_incomplete_data.i_name) goto read_err;
+
     curr_incomplete_data.i_data.object = dst->c_dict;
     curr_incomplete_data.i_type        = CJLIB_OBJECT;
 
@@ -384,6 +380,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         free(p_name);
         free(p_value);
         free(p_name_trimmed);
+        p_name  = NULL;
+        p_value = NULL;
+        p_name_trimmed = NULL;
     }
 
     return 0;
