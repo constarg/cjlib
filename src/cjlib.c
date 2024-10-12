@@ -347,17 +347,20 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         // TODO - make the whole process here.
         // TODO - Check if any property has the name $WHITE_SPACE, in this case return -1 and put the respective error message into the error variable.
         
-        p_name = parse_property_name((const struct cjlib_json  *) dst);
-        if (NULL == p_name) printf("Failed to parse the name\n");
-
+        if (SQUARE_BRACKETS_CLOSE != compl_indicator) {
+            p_name = parse_property_name((const struct cjlib_json  *) dst);
+            if (NULL == p_name) printf("Failed to parse the name\n");
+        }
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
         if (NULL == p_value) printf("Failed to parse the value of the property\n");
         
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
+            compl_indicator = CURLY_BRACKETS_CLOSE;
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
             // TODO - here is the case where an array is detected.
+            compl_indicator = SQUARE_BRACKETS_CLOSE;
             continue;
         } 
         
