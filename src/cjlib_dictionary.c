@@ -120,6 +120,7 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             if (CJLIB_BRANCH_UNLIKELY(delete_nodes)) {
                 cjlib_json_data_destroy(tmp->avl_data);
                 free(tmp->avl_data);
+                free(tmp->avl_key);
                 free(tmp);
                 tmp = NULL;
             }

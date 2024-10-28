@@ -27,6 +27,8 @@
 
 #define ROOT_PROPERTY_NAME    ("") // A name used to represent the begining of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
 
+// Indicated whether the currently incomplete attribute is an object.
+#define BUILDING_OBJECT(COMP) (CURLY_BRACKETS_CLOSE == COMP)
 
 // Recieves a pointer value which are pointed to a string that may be an object or an array.
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
@@ -42,6 +44,11 @@ struct incomplete_property
     } i_data;
 };
 
+static void incomplete_property_init(struct incomplete_property *src)
+{
+    (void)memset(src, 0x0, sizeof(struct incomplete_property));
+}
+
 int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key, 
                           struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
@@ -53,11 +60,14 @@ int cjlib_json_object_set(cjlib_json_object *src, const char *restrict key,
 int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src,
                           const char *restrict key)
 {
-    struct cjlib_json_data *tmp = NULL;
+    if (NULL == dst) return -1;
 
-    if (-1 == cjlib_dict_search(tmp, src, key)) return -1;
+    struct cjlib_json_data tmp;
+    cjlib_json_data_init(&tmp);
 
-    (void)memcpy(dst, tmp, sizeof(struct cjlib_json_data));
+    if (-1 == cjlib_dict_search(&tmp, src, key)) return -1;
+
+    (void)memcpy(dst, &tmp, sizeof(struct cjlib_json_data));
     return 0;
 }
 
@@ -302,7 +312,7 @@ static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *rest
     switch (p_type)
     {
         case CJLIB_OBJECT:
-            *((cjlib_json_object **) data) = cjlib_make_dict();
+            *((cjlib_json_object **) data) = cjlib_json_make_object();
             break;
         case CJLIB_ARRAY:
             *((union cjlib_json_data_disting **) data) = cjlib_make_json_array();
@@ -340,6 +350,27 @@ static CJLIB_ALWAYS_INLINE int configure_array(struct incomplete_property *restr
     return configure_common(src, p_name, (void *) &src->i_data.array, CJLIB_ARRAY);
 }
 
+static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    cjlib_json_object *parent_obj = parent->i_data.object;
+    cjlib_json_object *comple_obj = comp->i_data.object;
+    struct cjlib_json_data comp_data;
+    char *p_name_trimmed = trim_double_quotes(comp->i_name);
+
+    comp_data.c_datatype = CJLIB_OBJECT;
+    (void)memcpy(&comp_data.c_value.c_obj, comple_obj, sizeof(cjlib_json_object));
+
+    if (-1 == cjlib_dict_insert(&comp_data, &parent_obj, p_name_trimmed)) return NULL;
+
+    free(p_name_trimmed);
+    return parent_obj;
+}
+
+static CJLIB_ALWAYS_INLINE int actoins_before_array_restore()
+{
+    // TODO - same as the respective function for the nested object.
+}
+
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
 
@@ -370,6 +401,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     char *p_name_trimmed = NULL;
 
     cjlib_stack_init(&incomplate_data_stc);
+    incomplete_property_init(&tmp_data);
 
     curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object. (TODO - free this.)
     if (NULL == curr_incomplete_data.i_name) goto read_err;
@@ -383,13 +415,13 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     while (!cjlib_stack_is_empty(&incomplate_data_stc)) {
         // TODO - make the whole process here.
         // TODO - Check if any property has the name $WHITE_SPACE, in this case return -1 and put the respective error message into the error variable.
-        
-        if (SQUARE_BRACKETS_CLOSE != compl_indicator) {
+
+        if (BUILDING_OBJECT(compl_indicator)) { // Building an object?
             p_name = parse_property_name((const struct cjlib_json  *) dst);
-            if (NULL == p_name) printf("Failed to parse the name\n");
+            if (NULL == p_name) printf("Failed to parse the name\n"); // TODO - replace with the actual error
         }
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
-        if (NULL == p_value) printf("Failed to parse the value of the property\n");
+        if (NULL == p_value) printf("Failed to parse the value of the property\n"); // TODO - replace with the actual error.
         
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
@@ -400,10 +432,10 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             compl_indicator = SQUARE_BRACKETS_CLOSE;
             continue;
         } 
-        
+
         if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
 
-        if (SQUARE_BRACKETS_CLOSE != compl_indicator) {
+        if (BUILDING_OBJECT(compl_indicator)) {
             p_name_trimmed = trim_double_quotes(p_name);
             if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
         } else {
@@ -413,12 +445,34 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
             if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
             complete_data.c_datatype = tmp_data.i_type;
-            // TODO - build the rest of the complete data, to put on the AVL tree.
-            if (!strcmp(tmp_data.i_name, "")) {
-                // TODO - then is not root, push the data into the AVL tree.
+            
+            if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
+                switch (complete_data.c_datatype)
+                {
+                    case CJLIB_OBJECT:
+                        // Update the root of the AVL tree.
+                        tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
+                        (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
+                        break;
+                    case CJLIB_ARRAY:
+                        // TODO - make something like the case of the object.
+                        break;
+                    default:
+                        break;
+                }
+            } else {
+                if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME)) {
+                    free(tmp_data.i_name);
+                    free(p_name);
+                    free(p_value);
+                    free(p_name_trimmed);
+                    p_name  = NULL;
+                    p_value = NULL;
+                    p_name_trimmed = NULL;
+                    tmp_data.i_name = NULL;
+                    break;
+                }
             }
-
-            free(tmp_data.i_name);
         } 
 
         free(p_name);
@@ -428,6 +482,13 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         p_value = NULL;
         p_name_trimmed = NULL;
     }
+    free(tmp_data.i_name);
+    free(p_name);
+    free(p_value);
+    free(p_name_trimmed);
+
+    // Update the AVL tree.
+    dst->c_dict = curr_incomplete_data.i_data.object; // Is no longer incomplete.
 
     return 0;
 

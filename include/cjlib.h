@@ -159,10 +159,11 @@ static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
     switch (src->c_datatype)
     {
         case CJLIB_STRING:
-            free(src->c_value.c_arr);
+            free(src->c_value.c_str);
             break;
         case CJLIB_OBJECT:
             cjlib_dict_destroy(&src->c_value.c_obj);
+            (void)memset(src, 0x0, sizeof(cjlib_json_object));
             break;
         case CJLIB_ARRAY:
             free(src->c_value.c_arr);
