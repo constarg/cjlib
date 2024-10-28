@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "cjlib_dictionary.h"
+#include "cjlib_list.h"
 #include "cjlib_error.h"
 
 typedef long cjlib_json_num;
@@ -47,6 +48,10 @@ typedef cjlib_dict_t cjlib_json_object;
  #define CJLIB_BRANCH_UNLIKELY(x) !!(x)
 #endif
 
+#if defined(CJLIB_ARR_FOR_EACH)
+ #undef CJLIB_ARR_FOR_EACH
+#endif
+
 #if defined(CJLIB_GET_NUMBER)
  #undef CJLIB_GET_NUMBER
 #endif
@@ -66,6 +71,9 @@ typedef cjlib_dict_t cjlib_json_object;
 #if defined(CJLIB_GET_ARR)
  #undef CJLIB_GET_ARR
 #endif
+
+// For each for array access.
+#define CJLIB_ARR_FOR_EACH(ITEM, ARR_PTR, TYPE) (CJLIB_LIST_FOR_EACH(ITEM, ARR_PTR, TYPE))
 
 // Some useful macros.
 // Retreive the number which is inside the data.

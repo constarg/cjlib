@@ -3,6 +3,8 @@
 
 #include "cjlib.h"
 
+#include "cjlib_list.h"
+
 
 // Transform the low level CJLIB_GET_STRING to highier level GET_FIRST_NAME.
 #define GET_FIRST_NAME(JSON_DATA) \

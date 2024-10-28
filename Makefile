@@ -1,5 +1,5 @@
-obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o ./build/cjlib_stack.o ./build/cjlib_error.o
-obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o ./build/cjlib_stack_debug.o ./build/cjlib_error_debug.o
+obj_files = ./build/cjlib.o ./build/cjlib_queue.o ./build/cjlib_dictionary.o ./build/cjlib_stack.o ./build/cjlib_error.o ./build/cjlib_list.o
+obj_files_debug = ./build/cjlib_debug.o ./build/cjlib_dictionary_debug.o ./build/cjlib_queue_debug.o ./build/cjlib_stack_debug.o ./build/cjlib_error_debug.o ./build/cjlib_list_debug.o
 
 test_file_dir = ./tests/bin/
 
@@ -51,6 +51,9 @@ run_test_check: build_test_debug ${test_file_dir}${test_file_debug}
 ./build/cjlib_error.o: ./src/cjlib_error.c
 	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_error.c -o ./build/cjlib_error.o
 
+./build/cjlib_list.o: ./src/cjlib_list.c
+	${GCC} ${c_production_flags} ${header_loc} -c ./src/cjlib_list.c -o ./build/cjlib_list.o
+
 ./build/cjlib_debug.o: ./src/cjlib.c
 	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib.c -o ./build/cjlib_debug.o
 
@@ -65,6 +68,9 @@ run_test_check: build_test_debug ${test_file_dir}${test_file_debug}
 
 ./build/cjlib_error_debug.o: ./src/cjlib_error.c
 	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_error.c -o ./build/cjlib_error_debug.o
+
+./build/cjlib_list_debug.o: ./src/cjlib_list.c
+	${GCC} ${c_debug_flags} ${header_loc} -c ./src/cjlib_list.c -o ./build/cjlib_list_debug.o
 
 dir_make:
 	mkdir -p ./build/

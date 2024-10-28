@@ -38,7 +38,6 @@ size_t cjlib_queue_size(const struct cjlib_queue *restrict src)
 int cjlib_queue_enqeue(const void *restrict src, size_t s_size, struct cjlib_queue *restrict queue)
 {
     if (NULL == src || NULL == queue) return -1;
-    //if (NULL == *((unsigned char **)src)) return -1; // TODO - ?? - why i did this.
 
     struct cjlib_queue_node *new_node = (struct cjlib_queue_node *) malloc(sizeof(struct cjlib_queue_node));
     if (NULL == new_node) return -1;
