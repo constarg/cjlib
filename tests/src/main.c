@@ -35,11 +35,11 @@ int main(void)
     }
     
 
-    if (-1 == cjlib_json_object_get(&dst, &dst.c_value.c_obj, "age")) {
+    if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "second_name")) {
         printf("Error\n");
     }
 
-    printf("%d\n", (int) GET_AGE(dst));
+    printf("%s\n", GET_FIRST_NAME(dst));
 
     // if (-1 == cjlib_json_get(&dst, &json_file, "first_name")) {
     //      (void)printf("Failed to retrieve key");

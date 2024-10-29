@@ -327,25 +327,12 @@ static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *rest
 
 static CJLIB_ALWAYS_INLINE int configure_nested_object(struct incomplete_property *restrict src, const char *p_name)
 {
-    // src->i_name = strdup(p_name);
-    // if (NULL == src->i_name) return -1;
-    // src->i_data.object = cjlib_make_dict();
-    // if (NULL == src->i_data.object) return -1;
-    // src->i_type = CJLIB_OBJECT;
-
     src->i_type = CJLIB_OBJECT;
     return configure_common(src, p_name, (void *) &src->i_data.object, CJLIB_OBJECT);
 }
 
 static CJLIB_ALWAYS_INLINE int configure_array(struct incomplete_property *restrict src, const char *p_name)
 {
-    // src->i_name = strdup(p_name);
-    // if (NULL == src->i_name) return -1;
-    // src->i_data.array = cjlib_make_json_array(arr_size);
-    // if (NULL == src->i_data.array) return -1;
-    // src->i_type = CJLIB_ARRAY;
-    // return 0;
-
     src->i_type = CJLIB_ARRAY;
     return configure_common(src, p_name, (void *) &src->i_data.array, CJLIB_ARRAY);
 }
@@ -358,7 +345,10 @@ static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(
     char *p_name_trimmed = trim_double_quotes(comp->i_name);
 
     comp_data.c_datatype = CJLIB_OBJECT;
-    (void)memcpy(&comp_data.c_value.c_obj, comple_obj, sizeof(cjlib_json_object));
+    comp_data.c_value.c_obj = cjlib_json_make_object();
+    if (NULL == comp_data.c_value.c_obj) return NULL;
+
+    (void)memcpy(comp_data.c_value.c_obj, comple_obj, sizeof(cjlib_json_object));
 
     if (-1 == cjlib_dict_insert(&comp_data, &parent_obj, p_name_trimmed)) return NULL;
 
@@ -402,6 +392,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
     cjlib_stack_init(&incomplate_data_stc);
     incomplete_property_init(&tmp_data);
+    incomplete_property_init(&curr_incomplete_data);
 
     curr_incomplete_data.i_name        = strdup(ROOT_PROPERTY_NAME); // cause is the root object. (TODO - free this.)
     if (NULL == curr_incomplete_data.i_name) goto read_err;
@@ -452,6 +443,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                     case CJLIB_OBJECT:
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
+                        free(curr_incomplete_data.i_name); // strdup, func -> configure_common
                         (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         break;
                     case CJLIB_ARRAY:
