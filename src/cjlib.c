@@ -356,16 +356,18 @@ static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(
     return parent_obj;
 }
 
-static CJLIB_ALWAYS_INLINE int actoins_before_array_restore()
+static CJLIB_ALWAYS_INLINE int actoins_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
+    (void)comp;
+    (void)parent;
     // TODO - same as the respective function for the nested object.
+    return 0;
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
 {
 
     /**
-     * TODO 
      *  Algorithm description for objects:
      *  1. Create an incomplete object.
      *  2. Start filling the imcomplete object with elements until the close brackets '}' symbol show up.
@@ -373,7 +375,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
      */
 
     /**
-     * TODO 
      *  Algorithm description for arrays:
      *  1. If on filling process of the incomplete object an open square bracket show up '[' create an incomplete array.
      *  2. Start the filling process as it is an object, except that there are no names coresponded for each value.
@@ -404,9 +405,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
 
     while (!cjlib_stack_is_empty(&incomplate_data_stc)) {
-        // TODO - make the whole process here.
-        // TODO - Check if any property has the name $WHITE_SPACE, in this case return -1 and put the respective error message into the error variable.
-
         if (BUILDING_OBJECT(compl_indicator)) { // Building an object?
             p_name = parse_property_name((const struct cjlib_json  *) dst);
             if (NULL == p_name) printf("Failed to parse the name\n"); // TODO - replace with the actual error
@@ -417,6 +415,8 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
             compl_indicator = CURLY_BRACKETS_CLOSE;
+            free(p_name);
+            free(p_value);
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
             // TODO - here is the case where an array is detected.
@@ -444,6 +444,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
                         free(curr_incomplete_data.i_name); // strdup, func -> configure_common
+                        free(curr_incomplete_data.i_data.object);
                         (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         break;
                     case CJLIB_ARRAY:
@@ -455,14 +456,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             } else {
                 if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME)) {
                     free(tmp_data.i_name);
-                    free(p_name);
-                    free(p_value);
-                    free(p_name_trimmed);
-                    p_name  = NULL;
-                    p_value = NULL;
-                    p_name_trimmed = NULL;
                     tmp_data.i_name = NULL;
-                    break;
                 }
             }
         } 
@@ -475,9 +469,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         p_name_trimmed = NULL;
     }
     free(tmp_data.i_name);
-    free(p_name);
-    free(p_value);
-    free(p_name_trimmed);
 
     // Update the AVL tree.
     dst->c_dict = curr_incomplete_data.i_data.object; // Is no longer incomplete.
