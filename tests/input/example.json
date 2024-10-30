@@ -4,5 +4,7 @@
     "obj_test": {
         "second_name": "Iroh",
         "age": 56
-    }
+    },
+    "label": "test_label",
+    "label2": "test_label2"
 }

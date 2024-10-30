@@ -367,15 +367,15 @@ static CJLIB_ALWAYS_INLINE int actions_before_array_restore(const struct incompl
 static CJLIB_ALWAYS_INLINE int reached_end_of_json(const struct cjlib_json *restrict src)
 {
     // Get the current position in the file.
-    int restore_pos; // The position to return.
+    long restore_pos; // The position to return.
     unsigned char curr_byte; 
 
-    restore_pos = fseek(src->c_fp, 0x0, SEEK_CURR);
+    restore_pos = ftell(src->c_fp);
     if (-1 == restore_pos) return -1;
 
     do {
-        fgetc(src->c_fp);
-    } while(WHITE_SPACE == curr_byte);
+        curr_byte = fgetc(src->c_fp);
+    } while(WHITE_SPACE == curr_byte || NEW_LINE == curr_byte);
 
     if (-1 == fseek(src->c_fp, restore_pos, SEEK_SET)) return -1; // Reset the file offset.
 
@@ -460,10 +460,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             complete_data.c_datatype = tmp_data.i_type;
             
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
-                // TODO - check whether the tmp_data have the first expanded object.
-                // TODO - if the tmp_data hold the data of that object, push the object back to the list.
-                // TODO - ONLY IF the json files has reached the end (use the apropriate fucntion to determine)
-
                 switch (complete_data.c_datatype)
                 {
                     case CJLIB_OBJECT:
@@ -472,9 +468,12 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                         free(curr_incomplete_data.i_name); // strdup, func -> configure_common
                         free(curr_incomplete_data.i_data.object);
                         (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
+                        compl_indicator = CURLY_BRACKETS_CLOSE;
                         break;
                     case CJLIB_ARRAY:
                         // TODO - make something like the case of the object.
+                        // TODO - connect the array with the complete data (another array or an object)
+                        compl_indicator = SQUARE_BRACKETS_CLOSE;
                         break;
                     default:
                         break;
@@ -483,10 +482,20 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                 if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME)) {
                     free(tmp_data.i_name);
                     tmp_data.i_name = NULL;
+                    goto read_cleanup; // If this statment occur, then skip the end of file verification
                 }
             }
-        } 
 
+            reach_end = reached_end_of_json(dst);
+            if (-1 == reach_end) goto read_err;
+
+            if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME) && !reach_end) {
+                // This statement must be applied to ensure that all elements of the JSON file will be parsed, after an object closure.
+                if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+            }
+        }
+
+read_cleanup:
         free(p_name);
         free(p_value);
         free(p_name_trimmed);

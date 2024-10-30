@@ -30,14 +30,14 @@ int main(void)
 
     cjlib_json_read(&json_file);
 
-    if (-1 == cjlib_json_get(&dst, &json_file, "obj_test")) {
+    if (-1 == cjlib_json_get(&dst, &json_file, "label2")) {
         printf("Error\n");
     }
     
 
-    if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "second_name")) {
-        printf("Error\n");
-    }
+    // if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "second_name")) {
+    //     printf("Error\n");
+    // }
 
     printf("%s\n", GET_FIRST_NAME(dst));
 
