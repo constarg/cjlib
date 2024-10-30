@@ -356,12 +356,32 @@ static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(
     return parent_obj;
 }
 
-static CJLIB_ALWAYS_INLINE int actoins_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+static CJLIB_ALWAYS_INLINE int actions_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
     (void)comp;
     (void)parent;
     // TODO - same as the respective function for the nested object.
     return 0;
+}
+
+static CJLIB_ALWAYS_INLINE int reached_end_of_json(const struct cjlib_json *restrict src)
+{
+    // Get the current position in the file.
+    int restore_pos; // The position to return.
+    unsigned char curr_byte; 
+
+    restore_pos = fseek(src->c_fp, 0x0, SEEK_CURR);
+    if (-1 == restore_pos) return -1;
+
+    do {
+        fgetc(src->c_fp);
+    } while(WHITE_SPACE == curr_byte);
+
+    if (-1 == fseek(src->c_fp, restore_pos, SEEK_SET)) return -1; // Reset the file offset.
+
+    if (CURLY_BRACKETS_CLOSE == curr_byte) return true;
+
+    return false;
 }
 
 int cjlib_json_read(struct cjlib_json *restrict dst)
@@ -390,6 +410,8 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     char *p_value = NULL;
     char *p_name  = NULL;
     char *p_name_trimmed = NULL;
+
+    int reach_end;
 
     cjlib_stack_init(&incomplate_data_stc);
     incomplete_property_init(&tmp_data);
@@ -438,6 +460,10 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             complete_data.c_datatype = tmp_data.i_type;
             
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
+                // TODO - check whether the tmp_data have the first expanded object.
+                // TODO - if the tmp_data hold the data of that object, push the object back to the list.
+                // TODO - ONLY IF the json files has reached the end (use the apropriate fucntion to determine)
+
                 switch (complete_data.c_datatype)
                 {
                     case CJLIB_OBJECT:
