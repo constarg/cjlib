@@ -26,6 +26,11 @@ static inline void cjlib_list_init(struct cjlib_list *restrict src)
     (void)memset(src, 0x0, sizeof(struct cjlib_list));
 }
 
+static inline struct cjlib_list *make_list(void)
+{
+    return (struct cjlib_list) malloc(sizeof(struct cjlib_list));
+}
+
 extern int cjlib_list_append(const void *restrict src, size_t s_size, struct cjlib_list *list);
 
 extern int cjlib_list_get(void *restrict dst, size_t s_size, int index, const struct cjlib_list *list);

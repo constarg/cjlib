@@ -17,6 +17,7 @@ typedef bool cjlib_json_bool;
 
 typedef FILE *cjlib_json_fd;
 typedef cjlib_dict_t cjlib_json_object;
+typedef struct cjlib_list cjlib_json_array;
 
 #if defined(__GNUC__) || defined(__clang__)
 
@@ -121,7 +122,7 @@ union cjlib_json_data_disting
     cjlib_json_bool c_boolean;             // Boolean.
     cjlib_json_object *c_obj;              // json object.
     void *c_null;                          // null
-    union cjlib_json_data_disting *c_arr;  // array.
+    cjlib_json_array *c_arr;               // array.
 };
 
 /**
@@ -173,25 +174,33 @@ static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
             cjlib_dict_destroy(src->c_value.c_obj);
             break;
         case CJLIB_ARRAY:
-            free(src->c_value.c_arr);
+            cjlib_json_free_array(src->c_value.c_arr);
         default:
             break;
     }
 }
 
-static inline union cjlib_json_data_disting *cjlib_make_json_array(void)
+static inline cjlib_json_array *cjlib_make_json_array(void)
 {
-    return (union cjlib_json_data_disting *) malloc(sizeof(union cjlib_json_data_disting) * CJLIB_ARRAY_INIT_SIZE);
+    cjlib_json_array *arr = make_list();
+    cjlib_list_init(arr);
+
+    return arr;
 }
 
-static inline struct cjlib_json_data *cjlib_adjust_array_size(union cjlib_json_data_disting *restrict src, size_t adj_size)
+static inline void cjlib_json_free_array(cjlib_json_array *src) 
 {
-    return (struct cjlib_json_data *) realloc(src, sizeof(union cjlib_json_data_disting) * adj_size);
+    cjlib_list_destroy(src);
 }
 
-static inline void cjlib_json_free_array(union cjlib_json_data_disting *src) 
+static inline int cjlib_json_array_append(cjlib_json_array *restrict src, const struct cjlib_json_data *restrict value)
 {
-    free(src);
+    return cjlib_list_append((const void *) value, sizeof(struct cjlib_json_data), src);
+}
+
+static inline int cjlib_json_array_get(struct cjlib_json_data *restrict dst, int index, cjlib_json_array *restrict arr)
+{
+    return cjlib_list_get(dst, sizeof(struct cjlib_json_data), index, arr);
 }
 
 /**

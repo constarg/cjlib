@@ -40,7 +40,7 @@ struct incomplete_property
     char *i_name;                        // The name of the property that holds the incomplete data (in case of root object is WHITE_SPACE).
     union {
         cjlib_json_object *object;       // The incomplete data is an object.
-        struct cjlib_json_data *array;   // The incomplete data is an array.
+        cjlib_json_array *array;   // The incomplete data is an array.
     } i_data;
 };
 
@@ -315,7 +315,7 @@ static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *rest
             *((cjlib_json_object **) data) = cjlib_json_make_object();
             break;
         case CJLIB_ARRAY:
-            *((union cjlib_json_data_disting **) data) = cjlib_make_json_array();
+            *((cjlib_json_array **) data) = cjlib_make_json_array();
             break;
         default:
             break;
@@ -358,6 +358,8 @@ static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(
 
 static CJLIB_ALWAYS_INLINE int actions_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
+    
+
     (void)comp;
     (void)parent;
     // TODO - same as the respective function for the nested object.
@@ -441,7 +443,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             free(p_value);
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
-            // TODO - here is the case where an array is detected.
+            if (-1 == configure_array(&curr_incomplete_data, p_name)) goto read_err;
+            free(p_name);
+            free(p_value);
             compl_indicator = SQUARE_BRACKETS_CLOSE;
             continue;
         } 
@@ -452,7 +456,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             p_name_trimmed = trim_double_quotes(p_name);
             if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
         } else {
-            // TODO - here instead of dictionary, the data must be insterted in an array.
+            if (-1 == cjlib_json_array_append(&curr_incomplete_data.i_data.array, &complete_data)) goto read_err;
         }
 
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
@@ -462,6 +466,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
                 switch (complete_data.c_datatype)
                 {
+                    // TODO - Here in each of the two segments (CJLIB_OBJECT case and CJLIB_ARRAY case)
+                    // TODO - In both cases, there can be either object - object, or array - object, or object - array
+                    // TODO - Take this into concidaration and write the aprorpiate code.
                     case CJLIB_OBJECT:
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
