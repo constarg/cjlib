@@ -185,7 +185,7 @@ static struct avl_bs_tree_node *search_node(const struct avl_bs_tree_node *dict,
     int compare_key = 0;
     while (curr_node) {
         compare_key = strcmp(key, curr_node->avl_key);
-        
+
         if (compare_key == 0) break;
         if (compare_key > 0 || compare_key < 0) curr_parent = curr_node;
 
@@ -236,7 +236,6 @@ int cjlib_dict_search(struct cjlib_json_data *restrict dst, const struct avl_bs_
 static inline int assign_key_value_to_node(struct avl_bs_tree_node *restrict dst, const char *restrict key,
                                            const struct cjlib_json_data *restrict value)
 {
-    //dst->avl_key  = (char *) key; // WRONG METHOD. Removed.
     dst->avl_key  = (char *) strdup(key);
     dst->avl_data = (struct cjlib_json_data *) malloc(sizeof(struct cjlib_json_data));
     if (NULL == dst->avl_data) return -1;

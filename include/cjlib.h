@@ -161,6 +161,11 @@ static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
      (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
 }
 
+static inline void cjlib_json_free_array(cjlib_json_array *src)
+{
+    cjlib_list_destroy(src);
+}
+
 static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
 {
     if (NULL == src) return;
@@ -186,11 +191,6 @@ static inline cjlib_json_array *cjlib_make_json_array(void)
     cjlib_list_init(arr);
 
     return arr;
-}
-
-static inline void cjlib_json_free_array(cjlib_json_array *src) 
-{
-    cjlib_list_destroy(src);
 }
 
 static inline int cjlib_json_array_append(cjlib_json_array *restrict src, const struct cjlib_json_data *restrict value)

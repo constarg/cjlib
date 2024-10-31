@@ -37,7 +37,6 @@ void cjlib_setup_error(const char *property_name, const char *property_value,
     g_error.c_property_name  = strdup(property_name);
     g_error.c_property_value = strdup(property_value);
     g_error.c_error_code     = error_code;
-
     // Unlock the mutex.
     if (thrd_error == mtx_unlock(&g_error_mtx)) return;
 }

@@ -11,26 +11,26 @@
 #include "cjlib_dictionary.h"
 #include "cjlib_stack.h"
 
-#define DOUBLE_QUOTES         (0x22) // ASCII representive of "
-#define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representive of { 
-#define SQUARE_BRACKETS_OPEN  (0x5B) // ASCII representive of [
-#define CURLY_BRACKETS_CLOSE  (0x7D) // ASCII representive of } 
-#define SQUARE_BRACKETS_CLOSE (0x5D) // ASCII representive of ]
-#define COMMMA                (0x2C) // ASCII representive of ,
-#define WHITE_SPACE           (0x20) // ASCII representive of ' '
-#define SEPERATOR             (0x3A) // ASCII representive of :
+#define DOUBLE_QUOTES         (0x22) // ASCII representative of "
+#define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representative of {
+#define SQUARE_BRACKETS_OPEN  (0x5B) // ASCII representative of [
+#define CURLY_BRACKETS_CLOSE  (0x7D) // ASCII representative of }
+#define SQUARE_BRACKETS_CLOSE (0x5D) // ASCII representative of ]
+#define COMMMA                (0x2C) // ASCII representative of ,
+#define WHITE_SPACE           (0x20) // ASCII representative of ' '
+#define SEPERATOR             (0x3A) // ASCII representative of :
 
-#define NEW_LINE              (0x0A) // ASCII representive of \n 
+#define NEW_LINE              (0x0A) // ASCII representative of \n
 
-#define MEMORY_INIT_CHUNK     (0x3C) // Hex representive of 60.
+#define MEMORY_INIT_CHUNK     (0x3C) // Hex representative of 60.
 #define EXP_DOUBLE_QUOTES     (0x02) // Expected double quotes.
 
-#define ROOT_PROPERTY_NAME    ("") // A name used to represent the begining of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
+#define ROOT_PROPERTY_NAME    ("") // A name used to represent the beginning of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
 
 // Indicated whether the currently incomplete attribute is an object.
 #define BUILDING_OBJECT(COMP) (CURLY_BRACKETS_CLOSE == COMP)
 
-// Recieves a pointer value which are pointed to a string that may be an object or an array.
+// Receives a pointer value which are pointed to a string that may be an object or an array.
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
 #define P_VALUE_BEGIN_ARRAY(VALUE_PTR)  (*VALUE_PTR == SQUARE_BRACKETS_OPEN) 
 
@@ -435,7 +435,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         }
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
         if (NULL == p_value) printf("Failed to parse the value of the property\n"); // TODO - replace with the actual error.
-        
+
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
             compl_indicator = CURLY_BRACKETS_CLOSE;
@@ -448,7 +448,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             free(p_value);
             compl_indicator = SQUARE_BRACKETS_CLOSE;
             continue;
-        } 
+        }
 
         if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
 
@@ -462,13 +462,13 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
             if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
             complete_data.c_datatype = tmp_data.i_type;
-            
+
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
                 switch (complete_data.c_datatype)
                 {
                     // TODO - Here in each of the two segments (CJLIB_OBJECT case and CJLIB_ARRAY case)
                     // TODO - In both cases, there can be either object - object, or array - object, or object - array
-                    // TODO - Take this into concidaration and write the aprorpiate code.
+                    // TODO - Take this into consideration and write the appropriate code.
                     case CJLIB_OBJECT:
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
@@ -489,7 +489,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                 if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME)) {
                     free(tmp_data.i_name);
                     tmp_data.i_name = NULL;
-                    goto read_cleanup; // If this statment occur, then skip the end of file verification
+                    goto read_cleanup; // If this statement occur, then skip the end of file verification
                 }
             }
 
@@ -532,7 +532,7 @@ char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
 
 int cjlib_json_dump(const struct cjlib_json *restrict src)
 {
-    // 1. Translate the dicionary from the memory to json format.
+    // 1. Translate the dictionary from the memory to json format.
     // 2. Write the resulted string in the json file.
     return 0;
 }
