@@ -30,7 +30,7 @@ int main(void)
 
     cjlib_json_read(&json_file);
 
-    if (-1 == cjlib_json_get(&dst, &json_file, "label2")) {
+    if (-1 == cjlib_json_get(&dst, &json_file, "age")) {
         printf("Error\n");
     }
     
@@ -39,8 +39,10 @@ int main(void)
     //     printf("Error\n");
     // }
 
-    printf("%s\n", GET_FIRST_NAME(dst));
-
+    struct cjlib_json_data test;
+    CJLIB_LIST_FOR_EACH(test, dst.c_value.c_arr, struct cjlib_json_data) {
+        printf("%s\n", test.c_value.c_str);
+    }
     // if (-1 == cjlib_json_get(&dst, &json_file, "first_name")) {
     //      (void)printf("Failed to retrieve key");
     //      cjlib_json_close(&json_file);

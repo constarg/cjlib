@@ -134,10 +134,12 @@ static inline int type_decoder(struct cjlib_json_data *restrict dst, const char 
     enum cjlib_json_datatypes value_type;
     union cjlib_json_data_disting value;
     struct cjlib_json_data property;
+    enum cjlib_json_error_types err_code;
 
     // build the data that is going to be inserted in the json.
     // The following if is required to find the problem in which a commma or a close bracket appeared on the end of a string.
-    if (CURLY_BRACKETS_CLOSE == property_value[property_len - 1] || COMMMA == property_value[property_len - 1]) {
+    if (CURLY_BRACKETS_CLOSE == property_value[property_len - 1] || COMMMA == property_value[property_len - 1]
+        || SQUARE_BRACKETS_CLOSE == property_value[property_len - 1]) {
         property_value[property_len - 1] = '\0';
         --property_len;
     }
@@ -155,21 +157,31 @@ static inline int type_decoder(struct cjlib_json_data *restrict dst, const char 
         value_type = CJLIB_NUMBER;
         value.c_num = strtol(property_value, NULL, 10);
     } else {
-        cjlib_setup_error(p_name, p_value, INVALID_TYPE);
+        err_code = INVALID_TYPE;
+        goto type_decoder_err;
         return -1;
     }
 
     if (value_type == CJLIB_NUMBER && (LONG_MAX == value.c_num || LONG_MIN == value.c_num)) {
-        cjlib_setup_error(p_name, p_value, INVALID_NUMBER);
+        err_code = INVALID_NUMBER;
+        goto type_decoder_err;
         free(property_value);
         return -1;
     }
     property.c_datatype = value_type;
     property.c_value    = value;
-    
+
     (void)memcpy(dst, &property, sizeof(struct cjlib_json_data));
     free(property_value);
     return 0;
+
+type_decoder_err:
+    if (NULL == p_name) {
+        cjlib_setup_error("", p_value, err_code);
+    } else {
+        cjlib_setup_error(p_name, p_value, err_code);
+    }
+    return -1;
 }
 
 static char *parse_property_name(const struct cjlib_json *restrict src)
@@ -292,7 +304,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
             free(p_value);
             return NULL;
         } 
-        if (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) break; // Check for ,
+        if (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte || SQUARE_BRACKETS_CLOSE == curr_byte) break; // Check for ,
     } while (1);
 
     p_value[p_value_s] = '\0';
@@ -337,7 +349,7 @@ static CJLIB_ALWAYS_INLINE int configure_array(struct incomplete_property *restr
     return configure_common(src, p_name, (void *) &src->i_data.array, CJLIB_ARRAY);
 }
 
-static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+static CJLIB_ALWAYS_INLINE cjlib_json_object *restore_obj_from_nested_obj(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
     cjlib_json_object *parent_obj = parent->i_data.object;
     cjlib_json_object *comple_obj = comp->i_data.object;
@@ -356,14 +368,81 @@ static CJLIB_ALWAYS_INLINE cjlib_json_object *actions_before_nested_obj_restore(
     return parent_obj;
 }
 
+static CJLIB_ALWAYS_INLINE cjlib_json_object *restore_obj_from_array(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    cjlib_json_object *parent_obj = parent->i_data.object;
+    cjlib_json_array *comp_arr = comp->i_data.array;
+    struct cjlib_json_data comp_data;
+    char *p_name_trimmed = trim_double_quotes(comp->i_name);
+
+    comp_data.c_datatype = CJLIB_ARRAY;
+    comp_data.c_value.c_arr = cjlib_make_json_array();
+    if (NULL == comp_data.c_value.c_arr) return NULL;
+
+    (void)memcpy(comp_data.c_value.c_arr, comp_arr, sizeof(cjlib_json_array));
+
+    if (-1 == cjlib_dict_insert(&comp_data, &parent_obj, p_name_trimmed)) return NULL;
+
+    free(p_name_trimmed);
+    return parent_obj;
+}
+
+static void *actions_before_obj_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    switch (comp->i_type) {
+        case CJLIB_OBJECT:
+            return (void *) restore_obj_from_nested_obj(comp, parent);
+        case CJLIB_ARRAY:
+            return (void *) restore_obj_from_array(comp, parent);
+        default:
+            return NULL;
+    }
+}
+
+static CJLIB_ALWAYS_INLINE int restore_arr_from_object(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    cjlib_json_array *parent_arr = parent->i_data.array;
+    cjlib_json_object *comp_obj = comp->i_data.object;
+    struct cjlib_json_data comp_data;
+
+    comp_data.c_datatype = CJLIB_OBJECT;
+    comp_data.c_value.c_obj = cjlib_json_make_object();
+    if (NULL == comp_data.c_value.c_obj) return -1;
+
+    (void)memcpy(comp_data.c_value.c_obj, comp_obj, sizeof(cjlib_json_object));
+
+    if (-1 == cjlib_json_array_append(parent_arr, &comp_data)) return -1;
+
+    return 0;
+}
+
+static CJLIB_ALWAYS_INLINE int restore_arr_from_nested_arr(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    cjlib_json_array *parent_arr = parent->i_data.array;
+    cjlib_json_array *comp_arr = comp->i_data.array;
+    struct cjlib_json_data comp_data;
+
+    comp_data.c_datatype = CJLIB_ARRAY;
+    comp_data.c_value.c_arr = cjlib_make_json_array();
+    if (NULL == comp_data.c_value.c_arr) return -1;
+
+    (void)memcpy(comp_data.c_value.c_arr, comp_arr, sizeof(cjlib_json_array));
+
+    if (-1 == cjlib_json_array_append(parent_arr, &comp_data)) return -1;
+
+    return -1;
+}
+
 static CJLIB_ALWAYS_INLINE int actions_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
-    
-
-    (void)comp;
-    (void)parent;
-    // TODO - same as the respective function for the nested object.
-    return 0;
+    switch (comp->i_type) {
+        case CJLIB_OBJECT:
+            return restore_arr_from_object(comp, parent);
+        case CJLIB_ARRAY:
+            return restore_arr_from_nested_arr(comp, parent);
+        default:
+            return -1;
+    }
 }
 
 static CJLIB_ALWAYS_INLINE int reached_end_of_json(const struct cjlib_json *restrict src)
@@ -437,15 +516,25 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (NULL == p_value) printf("Failed to parse the value of the property\n"); // TODO - replace with the actual error.
 
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
+            if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+            if (CJLIB_ARRAY == curr_incomplete_data.i_type) p_name = strdup("");
+            if (NULL == p_name) goto read_err;
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
+
             compl_indicator = CURLY_BRACKETS_CLOSE;
             free(p_name);
             free(p_value);
+            p_name = NULL;
+            p_value = NULL;
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
+            //if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+
             if (-1 == configure_array(&curr_incomplete_data, p_name)) goto read_err;
             free(p_name);
             free(p_value);
+            p_name = NULL;
+            p_value = NULL;
             compl_indicator = SQUARE_BRACKETS_CLOSE;
             continue;
         }
@@ -455,8 +544,8 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (BUILDING_OBJECT(compl_indicator)) {
             p_name_trimmed = trim_double_quotes(p_name);
             if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object, p_name_trimmed)) goto read_err;
-        } else {
-            if (-1 == cjlib_json_array_append(&curr_incomplete_data.i_data.array, &complete_data)) goto read_err;
+        } else { // TODO - DO NOT APPEND THE CLOSE SQUARE BRACKET SYMBOL.
+            if (-1 == cjlib_json_array_append(curr_incomplete_data.i_data.array, &complete_data)) goto read_err;
         }
 
         if (compl_indicator == p_value[strlen(p_value) - 1]) {
@@ -466,20 +555,18 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
                 switch (complete_data.c_datatype)
                 {
-                    // TODO - Here in each of the two segments (CJLIB_OBJECT case and CJLIB_ARRAY case)
-                    // TODO - In both cases, there can be either object - object, or array - object, or object - array
-                    // TODO - Take this into consideration and write the appropriate code.
                     case CJLIB_OBJECT:
                         // Update the root of the AVL tree.
-                        tmp_data.i_data.object = actions_before_nested_obj_restore(&curr_incomplete_data, &tmp_data);
+                        tmp_data.i_data.object = actions_before_obj_restore(&curr_incomplete_data, &tmp_data);
                         free(curr_incomplete_data.i_name); // strdup, func -> configure_common
                         free(curr_incomplete_data.i_data.object);
                         (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         compl_indicator = CURLY_BRACKETS_CLOSE;
                         break;
                     case CJLIB_ARRAY:
-                        // TODO - make something like the case of the object.
-                        // TODO - connect the array with the complete data (another array or an object)
+                        if (-1 == actions_before_array_restore(&curr_incomplete_data, &tmp_data)) goto read_err;
+                        free(curr_incomplete_data.i_data.array);
+                        (void)memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         compl_indicator = SQUARE_BRACKETS_CLOSE;
                         break;
                     default:
@@ -498,7 +585,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
             if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME) && !reach_end) {
                 // This statement must be applied to ensure that all elements of the JSON file will be parsed, after an object closure.
-                if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+                //if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
             }
         }
 

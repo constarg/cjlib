@@ -77,15 +77,15 @@ typedef struct cjlib_list cjlib_json_array;
 #define CJLIB_ARR_FOR_EACH(ITEM, ARR_PTR, TYPE) (CJLIB_LIST_FOR_EACH(ITEM, ARR_PTR, TYPE))
 
 // Some useful macros.
-// Retreive the number which is inside the data.
+// Retrieve the number which is inside the data.
 #define CJLIB_GET_NUMBER(CJLIB_DATA) (CJLIB_DATA.c_value.c_num)
-// Retreive the string which is inside the data.
+// Retrieve the string which is inside the data.
 #define CJLIB_GET_STRING(CJLIB_DATA) (CJLIB_DATA.c_value.c_str)
-// Retreive the boolean which is inside the data.
+// Retrieve the boolean which is inside the data.
 #define CJLIB_GET_BOOL(CJLIB_DATA)   (CJLIB_DATA.c_value.c_boolean)
-// Retreive the object which is inside the data.
+// Retrieve the object which is inside the data.
 #define CJLIB_GET_OBJECT(CJLIB_DATA) (CJLIB_DATA.c_value.c_obj)
-// Retreive the Array which is inside the data.
+// Retrieve the Array which is inside the data.
 #define CJLIB_GET_ARRAY(CJLIB_DATA)  (CJLIB_DATA.c_value.c_arr)
 
 #define CJLIB_ARRAY_INIT_SIZE 200
@@ -161,15 +161,12 @@ static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
      (void)memset(src, 0x0, sizeof(struct cjlib_json_data));
 }
 
-static inline void cjlib_json_free_array(cjlib_json_array *src)
-{
-    cjlib_list_destroy(src);
-}
+static void cjlib_json_free_array(cjlib_json_array *src);
 
 static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
 {
     if (NULL == src) return;
-    
+
     switch (src->c_datatype)
     {
         case CJLIB_STRING:
@@ -180,9 +177,21 @@ static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
             break;
         case CJLIB_ARRAY:
             cjlib_json_free_array(src->c_value.c_arr);
+            break;
         default:
             break;
     }
+}
+
+static inline void cjlib_array_free_data(void *restrict src)
+{
+    struct cjlib_json_data *data = (struct cjlib_json_data *)src;
+    cjlib_json_data_destroy(data);
+}
+
+static inline void cjlib_json_free_array(cjlib_json_array *src)
+{
+    cjlib_list_destroy(src, &cjlib_array_free_data);
 }
 
 static inline cjlib_json_array *cjlib_make_json_array(void)
@@ -209,7 +218,7 @@ static inline int cjlib_json_array_get(struct cjlib_json_data *restrict dst, int
  * 
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates the value with it.
- * @param value The value to acociate with the key.
+ * @param value The value to associate with the key.
  * @param datatype The json datatype of the value.
  * @return 0 on success, otherwise -1.
 */
@@ -217,18 +226,18 @@ extern int cjlib_json_object_set(cjlib_json_object *src, const char *restrict ke
                                  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype);
 
 /**
- * This function get the data acociated with the key.
+ * This function get the data associated with the key.
  * @param dst A pointer that points to the location where the retrieved data should be stored.
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates the value with it.
- * @param value The value acociated with the key.
+ * @param value The value associated with the key.
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_object_get(struct cjlib_json_data *restrict dst, const cjlib_json_object *restrict src,
                                  const char *restrict key);
 
 /**
- * This function removes the data acociated with the key.
+ * This function removes the data associated with the key.
  * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates a value with it. 
@@ -243,7 +252,7 @@ extern int cjlib_json_object_remove(struct cjlib_json_data *restrict dst, cjlib_
  * 
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates the value with it.
- * @param value The value to acociate with the key.
+ * @param value The value to associate with the key.
  * @param datatype The json datatype of the value.
  * @return 0 on success, otherwise -1.
 */
@@ -254,11 +263,11 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_set(struct cjlib_json *restrict src, c
 }
 
 /**
- * This function get the data acociated with the key.
+ * This function get the data associated with the key.
  * @param dst A pointer that points to the location where the retrieved data should be stored.
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates the value with it.
- * @param value The value acociated with the key.
+ * @param value The value associated with the key.
  * @return 0 on success, otherwise -1.
 */
 
@@ -269,7 +278,7 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_get(struct cjlib_json_data *restrict d
 }
 
 /**
- * This function removes the data acociated with the key.
+ * This function removes the data associated with the key.
  * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
  * @param src A pointer to the json object in which we should put the value.
  * @param key A string that acociates a value with it. 
@@ -283,7 +292,7 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_remove(struct cjlib_json_data *restric
 
 /**
  * This function open's a json file.
- * @param dst The json object acociated with the json file.
+ * @param dst The json object associated with the json file.
  * @param json_path The path to the json file of interest.
  * @return 0 on success, otherwise -1.
 */
@@ -292,19 +301,19 @@ extern int cjlib_json_open(struct cjlib_json *restrict dst, const char *restrict
 
 /**
  * This function close a json file.
- * @param src The json object acociated with the open file.
+ * @param src The json object associated with the open file.
 */
 extern void cjlib_json_close(struct cjlib_json *restrict src);
 
 /**
  * This function read's the contents of a json file.
- * @param dst Where to put all the informations about the json.
+ * @param dst Where to put all the information's about the json.
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_read(struct cjlib_json *restrict dst);
 
 /**
- * This funciton make a json file to string.
+ * This function make a json file to string.
  * @param src The json object
  * @return on success, a pointer at the start of a string that represent the string version
  * of the given json file. Otherwise, null.

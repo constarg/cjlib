@@ -1,4 +1,4 @@
 {
     "first_name": "Lee",
-    "age": [1,2,3,4]
+    "age": ["test1", "test2", "test3", "test4"]
 }
