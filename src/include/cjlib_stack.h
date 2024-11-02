@@ -27,7 +27,7 @@ struct cjlib_stack
  */
 static inline void cjlib_stack_init(struct cjlib_stack *restrict src)
 {
-    (void)memset(src, 0x0, sizeof(struct cjlib_stack));
+    (void) memset(src, 0x0, sizeof(struct cjlib_stack));
 }
 
 /**

@@ -10,26 +10,26 @@ void cjlib_queue_deqeue(void *restrict dst, size_t d_size, struct cjlib_queue *r
     if (NULL == queue->front) return;
 
     struct cjlib_queue_node *tmp = queue->front;
-    queue->front = tmp->q_next;
-    (void)memcpy((void *) dst, tmp->q_data, sizeof(d_size));
+    queue->front                 = tmp->q_next;
+    (void) memcpy((void *) dst, tmp->q_data, sizeof(d_size));
     free(tmp->q_data);
     free(tmp);
 }
 
 bool cjlib_queue_is_empty(const struct cjlib_queue *restrict queue)
 {
-    return (NULL == queue->front)? true:false;
+    return (NULL == queue->front) ? true : false;
 }
 
-size_t cjlib_queue_size(const struct cjlib_queue *restrict src) 
+size_t cjlib_queue_size(const struct cjlib_queue *restrict src)
 {
     if (NULL == src->front) return 0;
 
     struct cjlib_queue_node *tmp = src->front;
-    size_t q_size = 0;
+    size_t q_size                = 0;
     while (tmp) {
         tmp = tmp->q_next;
-        q_size += 1;        
+        q_size += 1;
     }
 
     return q_size;
@@ -45,14 +45,14 @@ int cjlib_queue_enqeue(const void *restrict src, size_t s_size, struct cjlib_que
     if (NULL == new_node->q_data) return -1;
 
     new_node->q_next = NULL;
-    (void)memcpy(new_node->q_data, (void *) src, s_size);
+    (void) memcpy(new_node->q_data, (void *) src, s_size);
 
     if (NULL == queue->front) {
         queue->front = new_node;
         queue->rear  = new_node;
     } else {
         queue->rear->q_next = new_node;
-        queue->rear = new_node;
+        queue->rear         = new_node;
     }
 
     return 0;

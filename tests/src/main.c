@@ -6,7 +6,7 @@
 #include "cjlib_list.h"
 
 
-// Transform the low level CJLIB_GET_STRING to highier level GET_FIRST_NAME.
+// Transform the low level CJLIB_GET_STRING to higher level GET_FIRST_NAME.
 #define GET_FIRST_NAME(JSON_DATA) \
     CJLIB_GET_STRING(JSON_DATA)
 
@@ -18,14 +18,14 @@ int main(void)
     struct cjlib_json json_file;
     struct cjlib_json_data dst;
 
-    // // Initiazlie the json file.
+    // // Initialize the json file.
     cjlib_json_init(&json_file);
     cjlib_json_data_init(&dst);
 
     // // Open the json file of interest.
     if (-1 == cjlib_json_open(&json_file, "../input/example.json", "r")) {
-         (void)printf("Failed to open the json file\n");
-         exit(0);
+        (void) printf("Failed to open the json file\n");
+        exit(0);
     }
 
     cjlib_json_read(&json_file);
@@ -33,7 +33,7 @@ int main(void)
     if (-1 == cjlib_json_get(&dst, &json_file, "age")) {
         printf("Error\n");
     }
-    
+
 
     // if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "second_name")) {
     //     printf("Error\n");

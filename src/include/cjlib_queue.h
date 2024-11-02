@@ -10,7 +10,7 @@
 /**
  * This structure represents the data stored in a queue node.
  */
-struct cjlib_queue_node 
+struct cjlib_queue_node
 {
     void *q_data;
     struct cjlib_queue_node *q_next;
@@ -33,7 +33,7 @@ struct cjlib_queue
  */
 static inline void cjlib_queue_init(struct cjlib_queue *restrict src)
 {
-    (void)memset(src, 0x0, sizeof(struct cjlib_queue));
+    (void) memset(src, 0x0, sizeof(struct cjlib_queue));
 }
 
 /**

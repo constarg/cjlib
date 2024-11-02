@@ -16,7 +16,7 @@ struct avl_bs_tree_node
     char *avl_key;                      // The key of the node.
     struct avl_bs_tree_node *avl_left;  // The left child of the node.
     struct avl_bs_tree_node *avl_right; // The right child of the node.
-}; 
+};
 
 typedef struct avl_bs_tree_node cjlib_dict_t;
 
@@ -27,13 +27,13 @@ typedef struct avl_bs_tree_node cjlib_dict_t;
 */
 static inline void cjlib_dict_init(cjlib_dict_t *restrict src)
 {
-    (void)memset(src, 0x0, sizeof(cjlib_dict_t));
+    (void) memset(src, 0x0, sizeof(cjlib_dict_t));
 }
 
 /**
  * Create a new dictionary
 */
-static inline cjlib_dict_t *cjlib_make_dict(void) 
+static inline cjlib_dict_t *cjlib_make_dict(void)
 {
     return (cjlib_dict_t *) malloc(sizeof(cjlib_dict_t));
 }
@@ -48,8 +48,9 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
  * @param key  A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_dict_t *restrict dict, 
-                             const char *restrict key);
+extern int cjlib_dict_search
+(struct cjlib_json_data *restrict dst, const cjlib_dict_t *restrict dict,
+ const char *restrict key);
 
 /**
  * Inserts a new element with the specified key into a dictionary.
@@ -59,8 +60,9 @@ extern int cjlib_dict_search(struct cjlib_json_data *restrict dst, const cjlib_d
  * @param key  A pointer to a constant character string representing the key.
  * @return 0 on success, -1 otherwise.
 */
-extern int cjlib_dict_insert(const struct cjlib_json_data *restrict src, cjlib_dict_t **dict,
-                             const char *restrict key);
+extern int cjlib_dict_insert
+(const struct cjlib_json_data *restrict src, cjlib_dict_t **dict,
+ const char *restrict key);
 
 /**
  * Removes an element from a CJLib dictionary based on its key.
