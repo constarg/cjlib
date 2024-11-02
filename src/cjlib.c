@@ -29,6 +29,7 @@
 
 // Indicated whether the currently incomplete attribute is an object.
 #define BUILDING_OBJECT(COMP) (CURLY_BRACKETS_CLOSE == COMP)
+#define BUILDING_ARRAY(COMP) (SQUARE_BRACKETS_CLOSE == COMP)
 
 // Receives a pointer value which are pointed to a string that may be an object or an array.
 #define P_VALUE_BEGIN_OBJECT(VALUE_PTR) (*VALUE_PTR == CURLY_BRACKETS_OPEN)
@@ -315,8 +316,8 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
     return p_value;
 }
 
-static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *restrict src, const char *p_name, 
-                                                void **restrict data, enum cjlib_json_datatypes p_type)
+static int configure_common(struct incomplete_property *restrict src, const char *p_name,
+                            void **restrict data, enum cjlib_json_datatypes p_type)
 {
     src->i_name = strdup(p_name);
     if (NULL == src->i_name) return -1;
@@ -327,7 +328,7 @@ static CJLIB_ALWAYS_INLINE int configure_common(struct incomplete_property *rest
             *((cjlib_json_object **) data) = cjlib_json_make_object();
             break;
         case CJLIB_ARRAY:
-            *((cjlib_json_array **) data) = cjlib_make_json_array();
+            *((cjlib_json_array **) data) = cjlib_json_make_array();
             break;
         default:
             break;
@@ -349,51 +350,61 @@ static CJLIB_ALWAYS_INLINE int configure_array(struct incomplete_property *restr
     return configure_common(src, p_name, (void *) &src->i_data.array, CJLIB_ARRAY);
 }
 
-static CJLIB_ALWAYS_INLINE cjlib_json_object *restore_obj_from_nested_obj(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+static void *restore_common(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
-    cjlib_json_object *parent_obj = parent->i_data.object;
-    cjlib_json_object *comple_obj = comp->i_data.object;
+    void *parent_data = NULL;
     struct cjlib_json_data comp_data;
+
     char *p_name_trimmed = trim_double_quotes(comp->i_name);
+    void *i_data  = NULL;
+    void **c_value = NULL;
+    size_t i_data_s  = 0;
 
-    comp_data.c_datatype = CJLIB_OBJECT;
-    comp_data.c_value.c_obj = cjlib_json_make_object();
-    if (NULL == comp_data.c_value.c_obj) return NULL;
+    if (CJLIB_OBJECT == comp->i_type) {
+        i_data   = comp->i_data.object;
+        i_data_s = sizeof(cjlib_json_object);
+        c_value  = (void **) &comp_data.c_value.c_obj;
+    } else {
+        i_data   = comp->i_data.array;
+        i_data_s = sizeof(cjlib_json_array);
+        c_value  = (void **) &comp_data.c_value.c_arr;
+    }
 
-    (void)memcpy(comp_data.c_value.c_obj, comple_obj, sizeof(cjlib_json_object));
+    comp_data.c_datatype = comp->i_type;
+    *c_value = (CJLIB_OBJECT == comp->i_type)? (void *)cjlib_json_make_object(): (void *)cjlib_json_make_array();
+    if (NULL == c_value) return NULL;
 
-    if (-1 == cjlib_dict_insert(&comp_data, &parent_obj, p_name_trimmed)) return NULL;
+    (void)memcpy(*c_value, i_data, i_data_s);
+
+    if (CJLIB_OBJECT == parent->i_type) {
+        parent_data = parent->i_data.object;
+        if (-1 == cjlib_dict_insert(&comp_data, (cjlib_json_object **) &parent_data, p_name_trimmed)) return NULL;
+    } else {
+        parent_data = parent->i_data.array;
+        if (-1 == cjlib_json_array_append((cjlib_json_array *) parent_data, &comp_data)) return NULL;
+    }
 
     free(p_name_trimmed);
-    return parent_obj;
+    return parent_data;
+}
+
+static CJLIB_ALWAYS_INLINE cjlib_json_object *restore_obj_from_nested_obj(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+{
+    return (cjlib_json_object *) restore_common(comp, parent);
 }
 
 static CJLIB_ALWAYS_INLINE cjlib_json_object *restore_obj_from_array(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
-    cjlib_json_object *parent_obj = parent->i_data.object;
-    cjlib_json_array *comp_arr = comp->i_data.array;
-    struct cjlib_json_data comp_data;
-    char *p_name_trimmed = trim_double_quotes(comp->i_name);
-
-    comp_data.c_datatype = CJLIB_ARRAY;
-    comp_data.c_value.c_arr = cjlib_make_json_array();
-    if (NULL == comp_data.c_value.c_arr) return NULL;
-
-    (void)memcpy(comp_data.c_value.c_arr, comp_arr, sizeof(cjlib_json_array));
-
-    if (-1 == cjlib_dict_insert(&comp_data, &parent_obj, p_name_trimmed)) return NULL;
-
-    free(p_name_trimmed);
-    return parent_obj;
+    return (cjlib_json_object *) restore_common(comp, parent);
 }
 
-static void *actions_before_obj_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
+static cjlib_json_object *actions_before_obj_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
     switch (comp->i_type) {
         case CJLIB_OBJECT:
-            return (void *) restore_obj_from_nested_obj(comp, parent);
+            return restore_obj_from_nested_obj(comp, parent);
         case CJLIB_ARRAY:
-            return (void *) restore_obj_from_array(comp, parent);
+            return restore_obj_from_array(comp, parent);
         default:
             return NULL;
     }
@@ -401,36 +412,14 @@ static void *actions_before_obj_restore(const struct incomplete_property *restri
 
 static CJLIB_ALWAYS_INLINE int restore_arr_from_object(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
-    cjlib_json_array *parent_arr = parent->i_data.array;
-    cjlib_json_object *comp_obj = comp->i_data.object;
-    struct cjlib_json_data comp_data;
-
-    comp_data.c_datatype = CJLIB_OBJECT;
-    comp_data.c_value.c_obj = cjlib_json_make_object();
-    if (NULL == comp_data.c_value.c_obj) return -1;
-
-    (void)memcpy(comp_data.c_value.c_obj, comp_obj, sizeof(cjlib_json_object));
-
-    if (-1 == cjlib_json_array_append(parent_arr, &comp_data)) return -1;
-
+    if (NULL == restore_common(comp, parent)) return -1;
     return 0;
 }
 
 static CJLIB_ALWAYS_INLINE int restore_arr_from_nested_arr(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)
 {
-    cjlib_json_array *parent_arr = parent->i_data.array;
-    cjlib_json_array *comp_arr = comp->i_data.array;
-    struct cjlib_json_data comp_data;
-
-    comp_data.c_datatype = CJLIB_ARRAY;
-    comp_data.c_value.c_arr = cjlib_make_json_array();
-    if (NULL == comp_data.c_value.c_arr) return -1;
-
-    (void)memcpy(comp_data.c_value.c_arr, comp_arr, sizeof(cjlib_json_array));
-
-    if (-1 == cjlib_json_array_append(parent_arr, &comp_data)) return -1;
-
-    return -1;
+    if (NULL == restore_common(comp, parent)) return -1;
+    return 0;
 }
 
 static CJLIB_ALWAYS_INLINE int actions_before_array_restore(const struct incomplete_property *restrict comp, const struct incomplete_property *restrict parent)

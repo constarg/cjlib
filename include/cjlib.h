@@ -194,7 +194,7 @@ static inline void cjlib_json_free_array(cjlib_json_array *src)
     cjlib_list_destroy(src, &cjlib_array_free_data);
 }
 
-static inline cjlib_json_array *cjlib_make_json_array(void)
+static inline cjlib_json_array *cjlib_json_make_array(void)
 {
     cjlib_json_array *arr = make_list();
     cjlib_list_init(arr);
