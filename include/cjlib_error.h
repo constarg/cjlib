@@ -9,7 +9,6 @@ enum cjlib_json_error_types
     NO_ERROR,
     UNDEFINED,
     INVALID_TYPE,
-    INVALID_NAME,
     INVALID_JSON,
     DUPLICATE_NAME,
     INVALID_PROPERTY,

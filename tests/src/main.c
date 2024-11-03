@@ -25,31 +25,27 @@ int main(void)
     // // Open the json file of interest.
     if (-1 == cjlib_json_open(&json_file, "../input/example.json", "r")) {
         (void) printf("Failed to open the json file\n");
-        exit(0);
+        exit(-1);
     }
 
     cjlib_json_read(&json_file);
 
-    if (-1 == cjlib_json_get(&dst, &json_file, "age")) {
-        printf("Error\n");
+    if (-1 == cjlib_json_get(&dst, &json_file, "programming_languages")) {
+        (void) printf("Error\n");
+        exit(-1);
     }
-
-
-    // if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "second_name")) {
-    //     printf("Error\n");
-    // }
 
     struct cjlib_json_data test;
     CJLIB_LIST_FOR_EACH(test, dst.c_value.c_arr, struct cjlib_json_data) {
-        printf("%s\n", test.c_value.c_str);
+        (void) printf("%s\n", test.c_value.c_str);
     }
-    // if (-1 == cjlib_json_get(&dst, &json_file, "first_name")) {
-    //      (void)printf("Failed to retrieve key");
-    //      cjlib_json_close(&json_file);
-    //      exit(0);
-    // }
 
-    // (void)printf("NAME: %s\n", GET_FIRST_NAME(dst));
+    if (-1 == cjlib_json_get(&dst, &json_file, "industry")) {
+        (void) printf("Error\n");
+        exit(-1);
+    }
+
+    (void) printf("%s\n", dst.c_value.c_str);
 
     // // Close the json file.
     cjlib_json_close(&json_file);

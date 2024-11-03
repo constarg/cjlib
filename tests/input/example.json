@@ -1,4 +1,5 @@
 {
     "first_name": "Lee",
-    "age": ["test1", "test2", "test3", "test4"]
+    "industry": "Software Engineer",
+    "programming_languages": ["Python", "C", "C++", "Rust", "Go"]
 }

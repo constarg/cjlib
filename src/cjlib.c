@@ -215,12 +215,21 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
             return NULL;
         }
 
-        if (WHITE_SPACE == curr_byte) continue; // Check for ' '
+        if (WHITE_SPACE == curr_byte && 0 == double_quotes_c) continue; // Check for ' '
+        if (WHITE_SPACE == curr_byte && EXP_DOUBLE_QUOTES == double_quotes_c) continue;
+
+        // Check fof :
+        if (SEPERATOR == curr_byte) found_seperator = true;
+
+        if (EXP_DOUBLE_QUOTES == double_quotes_c && !found_seperator) {
+            p_name[p_name_s] = '\0';
+            cjlib_setup_error(p_name, "", MISSING_SEPERATOR);
+            free(p_name);
+            return NULL;
+        }
 
         // Check for "
         if (DOUBLE_QUOTES == curr_byte) ++double_quotes_c;
-        // Check fof :
-        if (SEPERATOR == curr_byte) found_seperator = true;
 
         if (double_quotes_c > 0) {
             p_name[p_name_s++] = curr_byte;
@@ -237,7 +246,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
         if (EXP_DOUBLE_QUOTES == double_quotes_c && found_seperator) break;
         if (found_seperator) {
             p_name[p_name_s] = '\0';
-            cjlib_setup_error(p_name, "", MISSING_SEPERATOR);
+            cjlib_setup_error(p_name, "", INCOMPLETE_DOUBLE_QUOTES);
             free(p_name);
             return NULL;
         }
@@ -277,8 +286,10 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
             free(p_value);
             return NULL;
         }
-        if (WHITE_SPACE == curr_byte) continue; // Check for ' '
-        if (NEW_LINE == curr_byte) continue;    // Check for \n
+        if (WHITE_SPACE == curr_byte && !is_string) continue; // Check for ' '
+        if (WHITE_SPACE == curr_byte && is_string && EXP_DOUBLE_QUOTES == double_quotes_c) continue;
+
+        if (NEW_LINE == curr_byte) continue; // Check for \n
 
         if (DOUBLE_QUOTES == curr_byte && !type_found) is_string = true;            // Check for "
         else if (CURLY_BRACKETS_OPEN == curr_byte && !type_found) is_object = true; // Check for {
@@ -462,7 +473,7 @@ static CJLIB_ALWAYS_INLINE int reached_end_of_json(const struct cjlib_json *rest
 
     if (-1 == fseek(src->c_fp, restore_pos, SEEK_SET)) return -1; // Reset the file offset.
 
-    if (CURLY_BRACKETS_CLOSE == curr_byte) return true;
+    if (CURLY_BRACKETS_CLOSE == curr_byte || feof(src->c_fp)) return true;
 
     return false;
 }
@@ -500,7 +511,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     incomplete_property_init(&tmp_data);
     incomplete_property_init(&curr_incomplete_data);
 
-    curr_incomplete_data.i_name = strdup(ROOT_PROPERTY_NAME); // cause is the root object. (TODO - free this.)
+    curr_incomplete_data.i_name = strdup(ROOT_PROPERTY_NAME); // cause is the root object.
     if (NULL == curr_incomplete_data.i_name) goto read_err;
 
     curr_incomplete_data.i_data.object = dst->c_dict;
@@ -515,11 +526,10 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         if (BUILDING_OBJECT(compl_indicator)) {
             // Building an object?
             p_name = parse_property_name((const struct cjlib_json *) dst);
-            if (NULL == p_name) printf("Failed to parse the name\n"); // TODO - replace with the actual error
+            if (NULL == p_name) goto read_err;
         }
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
-        if (NULL == p_value) printf("Failed to parse the value of the property\n");
-        // TODO - replace with the actual error.
+        if (NULL == p_value) goto read_err;
 
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
@@ -536,7 +546,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             p_value = NULL;
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
-            //if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+            if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
+                                       &incomplate_data_stc))
+                goto read_err;
 
             if (-1 == configure_array(&curr_incomplete_data, p_name)) goto read_err;
             free(p_name);
@@ -549,13 +561,12 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
         if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
 
-        if (BUILDING_OBJECT(compl_indicator)) {
+        if (BUILDING_OBJECT(compl_indicator) && CURLY_BRACKETS_CLOSE != p_value[0]) {
             p_name_trimmed = trim_double_quotes(p_name);
             if (-1 == cjlib_dict_insert(&complete_data, &curr_incomplete_data.i_data.object,
                                         p_name_trimmed))
                 goto read_err;
-        } else {
-            // TODO - DO NOT APPEND THE CLOSE SQUARE BRACKET SYMBOL.
+        } else if (BUILDING_ARRAY(compl_indicator) && SQUARE_BRACKETS_CLOSE != p_value[0]) {
             if (-1 == cjlib_json_array_append(curr_incomplete_data.i_data.array, &complete_data)) goto read_err;
         }
 
@@ -571,7 +582,10 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_obj_restore(&curr_incomplete_data, &tmp_data);
                         free(curr_incomplete_data.i_name); // strdup, func -> configure_common
-                        free(curr_incomplete_data.i_data.object);
+                        (CJLIB_OBJECT == curr_incomplete_data.i_type) ?
+                            free(curr_incomplete_data.i_data.object) :
+                            free(curr_incomplete_data.i_data.array);
+
                         (void) memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         compl_indicator = CURLY_BRACKETS_CLOSE;
                         break;
@@ -579,7 +593,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                         if (-1 == actions_before_array_restore(&curr_incomplete_data,
                                                                &tmp_data))
                             goto read_err;
-                        free(curr_incomplete_data.i_data.array);
+                        (CJLIB_OBJECT == curr_incomplete_data.i_type) ?
+                            free(curr_incomplete_data.i_data.object) :
+                            free(curr_incomplete_data.i_data.array);
                         (void) memcpy(&curr_incomplete_data, &tmp_data, sizeof(struct incomplete_property));
                         compl_indicator = SQUARE_BRACKETS_CLOSE;
                         break;
@@ -597,9 +613,10 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             reach_end = reached_end_of_json(dst);
             if (-1 == reach_end) goto read_err;
 
-            if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME) && !reach_end) {
-                // This statement must be applied to ensure that all elements of the JSON file will be parsed, after an object closure.
-                //if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property), &incomplate_data_stc)) goto read_err;
+            if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME) && reach_end) {
+                if (-1 == cjlib_stack_pop((void *) &tmp_data, sizeof(struct incomplete_property),
+                                          &incomplate_data_stc))
+                    goto read_err;
             }
         }
 
