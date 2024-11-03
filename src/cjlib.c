@@ -1,4 +1,19 @@
-// @file: cjlib.c
+/* File: cjlib.c
+ *
+ * Copyright (C) 2024 Constantinos Argyriou
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <stdio.h>
 #include <errno.h>
@@ -313,7 +328,24 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
                 return NULL;
             }
         }
-
+/*
+        TODO - Fix issue with p_value, see type_decoder parameter value in GDB below, p_value = "${" the parser recognize
+               The { as an new object, not as a value. Consider same issue with other keyword characters, like [, ','.
+        type_decoder (dst=0x7fffffffdd60, p_name=0x408a30 "\"program\"", p_value=0x408a80 "\"${") at ./src/cjlib.c:137
+        137	    char *property_value = strdup(p_value);
+        (gdb) n
+        138	    if (NULL == property_value) return -1;
+        (gdb)
+        140	    size_t property_len = strlen(property_value);
+        (gdb)
+        149	    if (CURLY_BRACKETS_CLOSE == property_value[property_len - 1] || COMMMA == property_value[property_len - 1]
+        (gdb)
+        150	        || SQUARE_BRACKETS_CLOSE == property_value[property_len - 1]) {
+        (gdb)
+        155	    if (DOUBLE_QUOTES == property_value[0] && DOUBLE_QUOTES == property_value[property_len - 1]) {
+        (gdb)
+        159	    } else if (!strcmp(property_value, "true") || !strcmp(property_value, "false")) {
+ */
         if (is_object || is_array) break;
         if (double_quotes_c < 2 && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte)) {
             p_value[p_value_s] = '\0';

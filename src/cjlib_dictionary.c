@@ -1,9 +1,23 @@
-// @file: cjlib_dictionary.c
-/**
+/*
  * This file contains an implementation of a dictionary data structure.
- * The implementation is using the Binary search tree's representation 
- * in order to achive the best perfomance of O(log n).
-*/
+ * The implementation is using the Binary search tree's representation
+ * in order to achieve the best performance of O(log n).
+ * File: cjlib_dictionary.c
+ *
+ * Copyright (C) 2024 Constantinos Argyriou
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <malloc.h>
 #include <stdlib.h>
