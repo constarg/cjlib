@@ -212,6 +212,7 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
 {
     unsigned char curr_byte;
     int double_quotes_c  = 0;
+    long retreat_pos = ftell(src->c_fp); // In case of retread, restore the file position.
     bool found_seperator = false;
 
     size_t p_name_init_s = MEMORY_INIT_CHUNK;
@@ -234,6 +235,12 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
 
         if (WHITE_SPACE == curr_byte && 0 == double_quotes_c) continue; // Check for ' '
         if (WHITE_SPACE == curr_byte && EXP_DOUBLE_QUOTES == double_quotes_c) continue;
+
+        if (CURLY_BRACKETS_OPEN == curr_byte && 0 == double_quotes_c) {
+            // Retreat!!, THIS is a name (not always an error)
+            fseek(src->c_fp, retreat_pos, SEEK_SET);
+            return strdup("");
+        }
 
         // Check fof :
         if (SEPERATOR == curr_byte) found_seperator = true;
@@ -284,7 +291,7 @@ static inline int next_is_end_of_file(FILE *restrict file_ptr)
     if (-1 == restore_pos) return -1;
 
     curr_byte = fgetc(file_ptr);
-    (void)curr_byte;
+    (void) curr_byte;
 
     if (-1 == fseek(file_ptr, restore_pos, SEEK_SET)) return -1; // Reset the file offset.
 
@@ -347,24 +354,7 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
                 return NULL;
             }
         }
-/*
-        TODO - Fix issue with p_value, see type_decoder parameter value in GDB below, p_value = "${" the parser recognize
-               The { as an new object, not as a value. Consider same issue with other keyword characters, like [, ','.
-        type_decoder (dst=0x7fffffffdd60, p_name=0x408a30 "\"program\"", p_value=0x408a80 "\"${") at ./src/cjlib.c:137
-        137	    char *property_value = strdup(p_value);
-        (gdb) n
-        138	    if (NULL == property_value) return -1;
-        (gdb)
-        140	    size_t property_len = strlen(property_value);
-        (gdb)
-        149	    if (CURLY_BRACKETS_CLOSE == property_value[property_len - 1] || COMMMA == property_value[property_len - 1]
-        (gdb)
-        150	        || SQUARE_BRACKETS_CLOSE == property_value[property_len - 1]) {
-        (gdb)
-        155	    if (DOUBLE_QUOTES == property_value[0] && DOUBLE_QUOTES == property_value[property_len - 1]) {
-        (gdb)
-        159	    } else if (!strcmp(property_value, "true") || !strcmp(property_value, "false")) {
- */
+
         if ((is_object || is_array) && (!is_string || double_quotes_c == EXP_DOUBLE_QUOTES)) break;
         if (double_quotes_c < EXP_DOUBLE_QUOTES && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) 
             && next_is_end_of_file(src->c_fp)) {
@@ -584,19 +574,24 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
         if (NULL == p_value) goto read_err;
 
+        if (BUILDING_OBJECT(compl_indicator)) {
+            if (!strcmp(ROOT_PROPERTY_NAME, p_name) && 
+                !strcmp(ROOT_PROPERTY_NAME, curr_incomplete_data.i_name)) goto read_cleanup;
+        }
+
         if (P_VALUE_BEGIN_OBJECT(p_value)) {
             if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
                                        &incomplate_data_stc))
                 goto read_err;
-            if (CJLIB_ARRAY == curr_incomplete_data.i_type) p_name = strdup("");
+            if (CJLIB_ARRAY == curr_incomplete_data.i_type) p_name = strdup(curr_incomplete_data.i_name);
             if (NULL == p_name) goto read_err;
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
 
-            compl_indicator = CURLY_BRACKETS_CLOSE;
             free(p_name);
             free(p_value);
             p_name  = NULL;
             p_value = NULL;
+            compl_indicator = CURLY_BRACKETS_CLOSE;
             continue;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
             if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
@@ -634,7 +629,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                     case CJLIB_OBJECT:
                         // Update the root of the AVL tree.
                         tmp_data.i_data.object = actions_before_obj_restore(&curr_incomplete_data, &tmp_data);
-                        free(curr_incomplete_data.i_name); // strdup, func -> configure_common
+                        free(curr_incomplete_data.i_name);
                         (CJLIB_OBJECT == curr_incomplete_data.i_type) ?
                             free(curr_incomplete_data.i_data.object) :
                             free(curr_incomplete_data.i_data.array);
@@ -646,6 +641,7 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                         if (-1 == actions_before_array_restore(&curr_incomplete_data,
                                                                &tmp_data))
                             goto read_err;
+                        free(curr_incomplete_data.i_name);
                         (CJLIB_OBJECT == curr_incomplete_data.i_type) ?
                             free(curr_incomplete_data.i_data.object) :
                             free(curr_incomplete_data.i_data.array);

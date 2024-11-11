@@ -19,10 +19,11 @@
 
 #include <malloc.h>
 #include <memory.h>
+#include <stdbool.h>
 
 #include "cjlib_list.h"
 
-extern int cjlib_list_append(const void *restrict src, size_t s_size, struct cjlib_list *list)
+int cjlib_list_append(const void *restrict src, size_t s_size, struct cjlib_list *list)
 {
     if (NULL == list) return -1;
 
@@ -52,7 +53,7 @@ skip:
     return 0;
 }
 
-extern int cjlib_list_get(void *restrict dst, size_t s_size, int index, const struct cjlib_list *list)
+int cjlib_list_get(void *restrict dst, size_t s_size, int index, const struct cjlib_list *list)
 {
     if (NULL == list) return -1;
 
@@ -70,9 +71,18 @@ extern int cjlib_list_get(void *restrict dst, size_t s_size, int index, const st
     return 0;
 }
 
-extern int cjlib_list_destroy(struct cjlib_list *restrict src, void (*data_disposal_routine)(void *src))
+bool cjlib_list_is_empty(const struct cjlib_list *restrict list) 
+{
+    if (NULL == list->l_head) return true;
+
+    return false;
+}
+
+int cjlib_list_destroy(struct cjlib_list *restrict src, void (*data_disposal_routine)(void *src))
 {
     if (NULL == src) return -1;
+    if (cjlib_list_is_empty(src)) goto cjlib_list_done;
+
     struct cjlib_list_node *tmp    = src->l_head;
     struct cjlib_list_node *remove = src->l_head;
 
@@ -88,6 +98,7 @@ extern int cjlib_list_destroy(struct cjlib_list *restrict src, void (*data_dispo
     free(tmp->l_data);
     free(tmp);
 
+cjlib_list_done:
     free(src);
     return 0;
 }

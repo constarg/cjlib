@@ -68,15 +68,22 @@ int main(void)
     (void) printf("%s\n", dst.c_value.c_str);*/
 
 
-    if (-1 == cjlib_json_get(&dst, &json_file, "configurations")) {
-        (void) printf("Error\n");
-        exit(-1);
-    }
+    // if (-1 == cjlib_json_get(&dst, &json_file, "configurations")) {
+    //     (void) printf("Error\n");
+    //     exit(-1);
+    // }
 
-    /*if (-1 == cjlib_json_array_get(&dst, 0, dst.c_value.c_arr)) {
-        (void) printf("Error\n");
-        exit(-1);
-    }*/
+    // if (-1 == cjlib_json_array_get(&dst, 0, dst.c_value.c_arr)) {
+    //     (void) printf("Error\n");
+    //     exit(-1);
+    // }
+
+    // if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "name")) {
+    //     (void) printf("Error\n");
+    //     exit(-1);
+    // }
+
+    // (void) printf("%s\n", dst.c_value.c_str);
 
     // // Close the json file.
     cjlib_json_close(&json_file);
