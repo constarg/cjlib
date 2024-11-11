@@ -1,5 +1,5 @@
 /* File: cjlib.c
- *
+ ************************************************************************
  * Copyright (C) 2024 Constantinos Argyriou
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *************************************************************************
  */
 
 #include <stdio.h>
@@ -275,6 +276,23 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
     return p_name;
 }
 
+static inline int next_is_end_of_file(FILE *restrict file_ptr)
+{
+    long restore_pos = ftell(file_ptr);
+    unsigned char curr_byte;
+
+    if (-1 == restore_pos) return -1;
+
+    curr_byte = fgetc(file_ptr);
+    (void)curr_byte;
+
+    if (-1 == fseek(file_ptr, restore_pos, SEEK_SET)) return -1; // Reset the file offset.
+
+    if (feof(file_ptr)) return true;
+
+    return false;
+}
+
 static char *parse_property_value(const struct cjlib_json *restrict src, const char *p_name)
 {
     unsigned char curr_byte;
@@ -307,13 +325,13 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
 
         if (NEW_LINE == curr_byte) continue; // Check for \n
 
-        if (DOUBLE_QUOTES == curr_byte && !type_found) is_string = true;            // Check for "
-        else if (CURLY_BRACKETS_OPEN == curr_byte && !type_found) is_object = true; // Check for {
-        else if (SQUARE_BRACKETS_OPEN == curr_byte && !type_found) is_array = true; // Check for [
+        if (DOUBLE_QUOTES == curr_byte && !type_found) is_string = type_found = true;            // Check for "
+        else if (CURLY_BRACKETS_OPEN == curr_byte && !type_found) is_object = type_found = true; // Check for {
+        else if (SQUARE_BRACKETS_OPEN == curr_byte && !type_found) is_array = type_found = true; // Check for [
 
         if (DOUBLE_QUOTES == curr_byte) ++double_quotes_c; // Check for "
 
-        if ((double_quotes_c > 0 && !is_string) || (double_quotes_c > 2 && is_string)) {
+        if ((double_quotes_c > 0 && !is_string) || (double_quotes_c > EXP_DOUBLE_QUOTES && is_string)) {
             p_value[p_value_s] = '\0';
             cjlib_setup_error(p_name, p_value, MISSING_COMMA);
             free(p_value);
@@ -347,15 +365,17 @@ static char *parse_property_value(const struct cjlib_json *restrict src, const c
         (gdb)
         159	    } else if (!strcmp(property_value, "true") || !strcmp(property_value, "false")) {
  */
-        if (is_object || is_array) break;
-        if (double_quotes_c < 2 && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte)) {
+        if ((is_object || is_array) && (!is_string || double_quotes_c == EXP_DOUBLE_QUOTES)) break;
+        if (double_quotes_c < EXP_DOUBLE_QUOTES && is_string && (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte) 
+            && next_is_end_of_file(src->c_fp)) {
             p_value[p_value_s] = '\0';
             cjlib_setup_error(p_name, p_value, INCOMPLETE_DOUBLE_QUOTES);
             free(p_value);
             return NULL;
         }
-        // Check for ,
-        if (COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte || SQUARE_BRACKETS_CLOSE == curr_byte) break;
+
+        if ((COMMMA == curr_byte || CURLY_BRACKETS_CLOSE == curr_byte || SQUARE_BRACKETS_CLOSE == curr_byte) &&
+            (!is_string || double_quotes_c == EXP_DOUBLE_QUOTES)) break;
     } while (1);
 
     p_value[p_value_s] = '\0';

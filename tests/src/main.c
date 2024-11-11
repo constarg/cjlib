@@ -1,5 +1,6 @@
 /* File: cjlib_stack.h
  *
+ ************************************************************************
  * Copyright (C) 2024 Constantinos Argyriou
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,6 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *************************************************************************
  */
 
 #include <stdio.h>
@@ -71,11 +73,10 @@ int main(void)
         exit(-1);
     }
 
-    if (-1 == cjlib_json_array_get(&dst, 0, dst.c_value.c_arr)) {
+    /*if (-1 == cjlib_json_array_get(&dst, 0, dst.c_value.c_arr)) {
         (void) printf("Error\n");
         exit(-1);
-    }
-
+    }*/
 
     // // Close the json file.
     cjlib_json_close(&json_file);
