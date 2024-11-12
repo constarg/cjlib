@@ -32,7 +32,7 @@
 #include "cjlib_list.h"
 #include "cjlib_error.h"
 
-typedef long cjlib_json_num;
+typedef double cjlib_json_num;
 typedef bool cjlib_json_bool;
 
 typedef FILE *cjlib_json_fd;

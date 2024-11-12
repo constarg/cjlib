@@ -132,7 +132,8 @@ void cjlib_json_close(struct cjlib_json *restrict src)
 static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)
 {
     while (*src) {
-        if (isdigit(*src++) == 0) return false;
+        if (isalpha(*src) || isblank(*src)) return false;
+        src++;
     }
     return true;
 }
@@ -181,7 +182,7 @@ static inline int type_decoder(struct cjlib_json_data *restrict dst, const char 
         value.c_null = NULL;
     } else if (is_number(property_value)) {
         value_type  = CJLIB_NUMBER;
-        value.c_num = strtol(property_value, NULL, 10);
+        value.c_num = atof(property_value);
     } else {
         err_code = INVALID_TYPE;
         goto type_decoder_err;
@@ -236,9 +237,13 @@ static char *parse_property_name(const struct cjlib_json *restrict src)
         if (WHITE_SPACE == curr_byte && 0 == double_quotes_c) continue; // Check for ' '
         if (WHITE_SPACE == curr_byte && EXP_DOUBLE_QUOTES == double_quotes_c) continue;
 
-        if (CURLY_BRACKETS_OPEN == curr_byte && 0 == double_quotes_c) {
+        if ((CURLY_BRACKETS_OPEN   == curr_byte  || 
+             CURLY_BRACKETS_CLOSE  == curr_byte ||
+             SQUARE_BRACKETS_OPEN  == curr_byte ||
+             SQUARE_BRACKETS_CLOSE == curr_byte) && 0 == double_quotes_c) {
             // Retreat!!, THIS is a name (not always an error)
             fseek(src->c_fp, retreat_pos, SEEK_SET);
+            free(p_name);
             return strdup("");
         }
 
