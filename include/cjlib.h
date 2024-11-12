@@ -34,6 +34,7 @@
 
 typedef double cjlib_json_num;
 typedef bool cjlib_json_bool;
+typedef char * cjlib_json_path;
 
 typedef FILE *cjlib_json_fd;
 typedef cjlib_dict_t cjlib_json_object;
@@ -130,6 +131,7 @@ struct cjlib_json
 {
     cjlib_json_fd c_fp;        // The file pointer of the json file.
     cjlib_json_object *c_dict; // The dictionary that contains the values of the json.
+    char *c_path;              // The path to the respective file.
 };
 
 /**
@@ -150,8 +152,8 @@ union cjlib_json_data_disting
  */
 struct cjlib_json_data
 {
-    union cjlib_json_data_disting c_value;
-    enum cjlib_json_datatypes c_datatype;
+    union cjlib_json_data_disting c_value; // TODO - change to pointer.
+    enum cjlib_json_datatypes c_datatype;  // TODO - change to pointer.
 };
 
 static inline int cjlib_json_init(struct cjlib_json *restrict src)
@@ -167,6 +169,8 @@ static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
 {
     cjlib_dict_destroy(src->c_dict);
     src->c_dict = NULL;
+    free(src->c_path);
+    src->c_path = NULL;
 }
 
 static inline cjlib_json_object *cjlib_json_make_object(void)
@@ -344,9 +348,9 @@ extern int cjlib_json_read(struct cjlib_json *restrict dst);
  * @return on success, a pointer at the start of a string that represent the string version
  * of the given json file. Otherwise, null.
 */
-extern char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src);
+extern const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src);
 
-static inline char *cjlib_json_stringtify(struct cjlib_json *restrict src)
+static inline const char *cjlib_json_stringtify(struct cjlib_json *restrict src)
 {
     return cjlib_json_object_stringtify(src->c_dict);
 }

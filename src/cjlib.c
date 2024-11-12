@@ -119,6 +119,8 @@ int cjlib_json_open
 
     dst->c_fp = fp;
     cjlib_dict_init(dst->c_dict);
+
+    dst->c_path = strdup(json_path);
     return 0;
 }
 
@@ -592,24 +594,16 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
             if (NULL == p_name) goto read_err;
             if (-1 == configure_nested_object(&curr_incomplete_data, p_name)) goto read_err;
 
-            free(p_name);
-            free(p_value);
-            p_name  = NULL;
-            p_value = NULL;
             compl_indicator = CURLY_BRACKETS_CLOSE;
-            continue;
+            goto read_cleanup;
         } else if (P_VALUE_BEGIN_ARRAY(p_value)) {
             if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
                                        &incomplate_data_stc))
                 goto read_err;
 
             if (-1 == configure_array(&curr_incomplete_data, p_name)) goto read_err;
-            free(p_name);
-            free(p_value);
-            p_name          = NULL;
-            p_value         = NULL;
             compl_indicator = SQUARE_BRACKETS_CLOSE;
-            continue;
+            goto read_cleanup;
         }
 
         if (-1 == type_decoder(&complete_data, p_name, p_value)) goto read_err;
@@ -697,14 +691,19 @@ read_err:
     return -1;
 }
 
-char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
+const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
 {
+    (void) src;
     return NULL;
 }
 
 int cjlib_json_dump(const struct cjlib_json *restrict src)
 {
-    // 1. Translate the dictionary from the memory to json format.
-    // 2. Write the resulted string in the json file.
+    if (NULL == freopen(src->c_path, "w+", src->c_fp)) return -1;
+
+    const char *json_content = cjlib_json_object_stringtify(src->c_dict);
+    if (NULL == json_content) return -1;
+
+    (void) fwrite((void *) json_content, strlen(json_content), 1, src->c_fp);
     return 0;
 }
