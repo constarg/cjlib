@@ -21,6 +21,8 @@
 #ifndef CJLIB_DICTIONARY_H
 #define CJLIB_DICTIONARY_H
 
+#include "cjlib_queue.h"
+
 #include <memory.h>
 #include <stdlib.h>
 
@@ -57,6 +59,14 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
     return (cjlib_dict_t *) malloc(sizeof(cjlib_dict_t));
 }
 
+/**
+ * Travel through the whole tree using the POST-ORDER method. For each node execute the
+ * action callback.
+ *
+ * @param src A pointer to the dictionary.
+ * @return -1 in case an error occur, otherwise -1.
+*/
+extern int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const cjlib_dict_t *src);
 
 /**
  * Searches for an element in a dictionary based on its associated key.

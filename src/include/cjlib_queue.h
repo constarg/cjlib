@@ -24,8 +24,6 @@
 #include <memory.h>
 #include <stdbool.h>
 
-#include "cjlib_dictionary.h"
-
 /**
  * This structure represents the data stored in a queue node.
  */

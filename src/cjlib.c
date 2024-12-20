@@ -423,7 +423,7 @@ static void *restore_common
     void *parent_data = NULL;
     struct cjlib_json_data comp_data;
 
-    char *p_name_trimmed = trim_double_quotes(comp->i_name);
+    char *p_name_trimmed = (!strcmp(ROOT_PROPERTY_NAME, comp->i_name))? strdup(comp->i_name):trim_double_quotes(comp->i_name);
     void *i_data         = NULL;
     void **c_value       = NULL;
     size_t i_data_s      = 0;
@@ -623,6 +623,11 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
                 goto read_err;
             complete_data.c_datatype = tmp_data.i_type;
 
+            if (!strcmp(tmp_data.i_name, ROOT_PROPERTY_NAME) && 
+                !strcmp(curr_incomplete_data.i_name, ROOT_PROPERTY_NAME)) {
+                    tmp_data = curr_incomplete_data;
+            }
+
             if (memcmp(&tmp_data, &curr_incomplete_data, sizeof(struct incomplete_property)) != 0) {
                 switch (complete_data.c_datatype) {
                     case CJLIB_OBJECT:
@@ -693,6 +698,11 @@ read_err:
 
 const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
 {
+    struct cjlib_queue object_data_q; 
+    cjlib_queue_init(&object_data_q);
+
+    if (-1 == cjlib_dict_postorder(&object_data_q, src)) return NULL;
+
     (void) src;
     return NULL;
 }

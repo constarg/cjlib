@@ -96,6 +96,39 @@ enum rotation_after_left_deletion_type
     L_MINUS_1 = -0x1
 };
 
+int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const struct avl_bs_tree_node *src)
+{
+    struct cjlib_queue post_order_node_q; // The queue used for the post order traversal.
+    struct cjlib_queue post_order_data_q; 
+    cjlib_queue_init(&post_order_node_q);
+    cjlib_queue_init(&post_order_data_q);
+
+    struct avl_bs_tree_node *root = (struct avl_bs_tree_node *) src; // Set the root of the whole tree in the local variable.
+
+    do {
+        if (NULL != root) {
+            if (-1 == cjlib_queue_enqeue((void *) root->avl_data, sizeof(struct cjlib_json_data), &post_order_data_q)) return -1;
+        }
+        
+        if (NULL != root && NULL != root->avl_left) {
+            if (-1 == cjlib_queue_enqeue((void *) root, sizeof(struct avl_bs_tree_node), &post_order_node_q)) return -1;
+        }
+
+        if (NULL != root->avl_right) {
+            if (-1 == cjlib_queue_enqeue((void *) root->avl_right, sizeof(struct avl_bs_tree_node *), &post_order_node_q)) return -1;
+        }
+
+        if (NULL != root->avl_left) {
+            root = src->avl_left;
+        } else {
+            cjlib_queue_deqeue(root, sizeof(struct avl_bs_tree_node *), &post_order_node_q);
+        }
+    } while(!cjlib_queue_is_empty(&post_order_node_q));
+
+    (void) memcpy(dst, &post_order_data_q, sizeof(struct cjlib_queue));
+
+    return 0;
+}
 /**
  * Calculates the height of a tree/subtree using level-order traversal and frees memory (optional).
  *
@@ -139,7 +172,7 @@ static size_t lvl_order_traversal(const struct avl_bs_tree_node *src, bool delet
             }
 
             if (CJLIB_BRANCH_UNLIKELY(delete_nodes)) {
-                cjlib_json_data_destroy(tmp->avl_data);
+                cjlib_json_data_destroy(tmp->avl_data); // TODO - IF the data are a dictionary, then put it to queue, in order to prevent stack overflow.
                 free(tmp->avl_data);
                 free(tmp->avl_key);
                 free(tmp);
@@ -685,7 +718,6 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
     perform_rotation_after_delete(removed, dict);
 
     free(removed->avl_key);
-    // TODO - must validate. SEE assign_key_value_node (changed: strdup added for better malloc tracking).
     free(removed->avl_data);
     free(removed);
     removed = NULL;
