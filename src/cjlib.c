@@ -701,9 +701,10 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
     struct cjlib_queue object_data_q; 
     cjlib_queue_init(&object_data_q);
 
-    if (-1 == cjlib_dict_postorder(&object_data_q, src)) return NULL;
+    if (-1 == cjlib_dict_postorder(&object_data_q, (cjlib_json_object *) src)) return NULL;
 
-    (void) src;
+    // TODO - implement the algorithm.
+
     return NULL;
 }
 
