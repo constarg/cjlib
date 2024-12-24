@@ -44,6 +44,7 @@
 
 #define ROOT_PROPERTY_NAME    ("") // A name used to represent the beginning of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
 
+#define OBJECT_STR_STATE_INIT_LEN 1000 // The initial length of the state string (see strintify function)
 
 
 // Indicated whether the currently incomplete attribute is an object.
@@ -62,6 +63,20 @@ struct incomplete_property
     {
         cjlib_json_object *object; // The incomplete data is an object.
         cjlib_json_array *array;   // The incomplete data is an array.
+    } i_data;
+};
+
+/**
+ * Used to describe an incomplete object or array in the process
+ * of stringtifing the object/array stored in the RAM
+ */
+struct incomplete_property_str
+{
+    char *i_state; // How much of the object/array is complete.
+    union 
+    {
+        cjlib_json_object *object;
+        cjlib_json_array *array;
     } i_data;
 };
 
@@ -561,11 +576,20 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
     incomplete_property_init(&tmp_data);
     incomplete_property_init(&curr_incomplete_data);
 
-    curr_incomplete_data.i_name = strdup(ROOT_PROPERTY_NAME); // cause is the root object.
+    curr_incomplete_data = (struct incomplete_property) {
+        .i_name = strdup(ROOT_PROPERTY_NAME), // cause is the root object
+        .i_type = CJLIB_OBJECT,
+        .i_data.object = dst->c_dict
+    };
+
+    // curr_incomplete_data.i_name = strdup(ROOT_PROPERTY_NAME);
+
+    // curr_incomplete_data.i_data.object = dst->c_dict;
+    // curr_incomplete_data.i_type        = CJLIB_OBJECT;
+
+
     if (NULL == curr_incomplete_data.i_name) goto read_err;
 
-    curr_incomplete_data.i_data.object = dst->c_dict;
-    curr_incomplete_data.i_type        = CJLIB_OBJECT;
 
     // Push the first incomplete object into the stack.
     if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
@@ -696,14 +720,25 @@ read_err:
     return -1;
 }
 
-const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src)
+const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
-    struct cjlib_queue object_data_q; 
+    struct cjlib_queue object_data_q;
+    struct cjlib_stack incomplete_data_stc;
+    struct incomplete_property_str curr_incomp_p;
+
     cjlib_queue_init(&object_data_q);
+    cjlib_stack_init(&incomplete_data_stc);
 
-    if (-1 == cjlib_dict_postorder(&object_data_q, (cjlib_json_object *) src)) return NULL;
+    curr_incomp_p = (struct incomplete_property_str) {
+        .i_state       = (char *) malloc(OBJECT_STR_STATE_INIT_LEN),
+        .i_data.object = 
+    };
 
-    // TODO - implement the algorithm.
+
+    do {
+        
+    } while (!cjlib_queue_is_empty(&object_data_q))
+
 
     return NULL;
 }

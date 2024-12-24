@@ -96,6 +96,9 @@ enum rotation_after_left_deletion_type
     L_MINUS_1 = -0x1
 };
 
+/**
+ * Set every node of a AVL tree into a QEUEUE
+ */
 int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const struct avl_bs_tree_node *src)
 {
     struct cjlib_queue post_order_node_q; // The queue used for the post order traversal.

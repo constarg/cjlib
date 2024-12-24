@@ -348,9 +348,9 @@ extern int cjlib_json_read(struct cjlib_json *restrict dst);
  * @return on success, a pointer at the start of a string that represent the string version
  * of the given json file. Otherwise, null.
 */
-extern const char *cjlib_json_object_stringtify(const cjlib_json_object *restrict src);
+extern const char *cjlib_json_object_stringtify(const cjlib_json_object *src);
 
-static inline const char *cjlib_json_stringtify(struct cjlib_json *restrict src)
+static inline const char *cjlib_json_stringtify(struct cjlib_json *src)
 {
     return cjlib_json_object_stringtify(src->c_dict);
 }
