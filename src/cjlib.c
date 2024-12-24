@@ -723,6 +723,7 @@ read_err:
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
     (void) src;
+
 /*
     struct cjlib_queue object_data_q;
     struct cjlib_stack incomplete_data_stc;
