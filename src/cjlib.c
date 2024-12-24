@@ -722,6 +722,8 @@ read_err:
 
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
+    (void) src;
+/*
     struct cjlib_queue object_data_q;
     struct cjlib_stack incomplete_data_stc;
     struct incomplete_property_str curr_incomp_p;
@@ -731,15 +733,14 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
     curr_incomp_p = (struct incomplete_property_str) {
         .i_state       = (char *) malloc(OBJECT_STR_STATE_INIT_LEN),
-        .i_data.object = 
+        //.i_data.object =  
     };
 
 
     do {
         
-    } while (!cjlib_queue_is_empty(&object_data_q))
-
-
+    } while (!cjlib_queue_is_empty(&object_data_q));
+*/
     return NULL;
 }
 
