@@ -28,6 +28,12 @@
 
 struct cjlib_json_data;
 
+// Requires a pointer and accesses the key of a node.
+#define CJLIB_DICT_NODE_KEY(NODE_PTR) NODE_PTR->avl_key
+
+// Requires a pointer and accesses the data of a node.
+#define CJLIB_DICT_NODE_DATA(NODE_PTR) NODE_PTR->avl_data
+
 /**
  * AVL Binary search tree node.
 */
@@ -39,7 +45,13 @@ struct avl_bs_tree_node
     struct avl_bs_tree_node *avl_right; // The right child of the node.
 };
 
-typedef struct avl_bs_tree_node cjlib_dict_t;
+/**
+ * The following two types are the same. The only reason that there 
+ * are two distinct names for the same structure is to enchace the 
+ * readability of the codebose.
+ */
+typedef struct avl_bs_tree_node cjlib_dict_t;       // Used to represent the whole dictionary.
+typedef struct avl_bs_tree_node cjlib_dict_node_t;  // Used to represent a node of the dictionary (consisting of a key:value pair).
 
 /**
  * initialize the dictionary.
@@ -60,10 +72,11 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
 }
 
 /**
- * Travel through the whole tree using the POST-ORDER method. For each node execute the
- * action callback.
+ * Travel through the whole tree using the POST-ORDER method. This function builds a 
+ * queue that consists of all the available nodes in the dictionary of interest. 
  *
- * @param src A pointer to the dictionary.
+ * @param dst A pointer pointing to the memory where the built queue is stored.
+ * @param src A pointer to the dictionary (or object) of interest.
  * @return -1 in case an error occur, otherwise -1.
 */
 extern int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const cjlib_dict_t *src);

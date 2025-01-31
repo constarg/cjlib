@@ -67,7 +67,7 @@ int main(void)
 
     (void) printf("%s\n", dst.c_value.c_str);*/
 
-
+    /*
     if (-1 == cjlib_json_get(&dst, &json_file, "configurations")) {
            (void) printf("Error\n");
            exit(-1);
@@ -84,8 +84,10 @@ int main(void)
     }
     
      (void) printf("%s\n", dst.c_value.c_str);
+    */
+ 
 
-    //cjlib_json_stringtify(&json_file);
+    cjlib_json_stringtify(&json_file);
 
     // // Close the json file.
     cjlib_json_close(&json_file);

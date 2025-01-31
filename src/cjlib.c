@@ -22,11 +22,14 @@
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "cjlib.h"
 #include "cjlib_error.h"
 #include "cjlib_dictionary.h"
 #include "cjlib_stack.h"
+#include "include/cjlib_dictionary.h"
+#include "include/cjlib_queue.h"
 
 #define DOUBLE_QUOTES         (0x22) // ASCII representative of "
 #define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representative of {
@@ -582,12 +585,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         .i_data.object = dst->c_dict
     };
 
-    // curr_incomplete_data.i_name = strdup(ROOT_PROPERTY_NAME);
-
-    // curr_incomplete_data.i_data.object = dst->c_dict;
-    // curr_incomplete_data.i_type        = CJLIB_OBJECT;
-
-
     if (NULL == curr_incomplete_data.i_name) goto read_err;
 
 
@@ -720,28 +717,93 @@ read_err:
     return -1;
 }
 
+/**
+ * Take the data of the current JSON field and its respective key as an argument 
+ * and produce a string that is in format KEY : DATA, 
+ *
+ * @param src The data of the field.
+ * @param key The respective key of the field.
+ * @return A string representing an entry of the JSON file (Format KEY : DATA,) -> (KEY COLON DATA COMMA) in success, 
+ * otherwise NULL is returned.
+ */
+static char *key_value_paired_stringtify(const struct cjlib_json_data *restrict src, const char *restrict key)
+{
+    const size_t comma_len = 1;
+    const size_t colon_len = 1;
+    const size_t boolean_true_len  = 4;
+    const size_t boolean_false_len = 5;
+    const size_t null_len = 4;
+    size_t digit_num = 0;
+
+    char *result;
+    switch (src->c_datatype) {
+        case CJLIB_STRING:
+            // LEN(KEY) + LEN(:) + LEN(VALUE) + LEN(,) + LEN("\0")
+            result = (char *) malloc(strlen(key) + strlen(src->c_value.c_str) + comma_len + colon_len + 1);
+            if (NULL == result) return NULL;
+            sprintf(result, "%s:%s,", key, src->c_value.c_str);
+            break;
+        case CJLIB_NUMBER:
+            digit_num = snprintf(NULL, 0, "%f", src->c_value.c_num);
+            result = (char *) malloc(strlen(key) + digit_num + comma_len + colon_len + 1);
+            if (NULL == result) return NULL;
+            sprintf(result, "%s:%f,", key, src->c_value.c_num);
+            break;
+        case CJLIB_BOOLEAN:
+            if (src->c_value.c_boolean) {
+                result = (char *) malloc(strlen(key) + boolean_true_len + comma_len + colon_len + 1);
+                if (NULL == result) return NULL;
+                sprintf(result, "%s:%s,", key, "true");
+            } else {
+                result = (char *) malloc(strlen(key) + boolean_false_len + comma_len + colon_len + 1);
+                if (NULL == result) return NULL;
+                sprintf(result, "%s:%s,", key, "false");
+            }
+            break;
+        case CJLIB_NULL:
+            result = (char *) malloc(strlen(key) + null_len + comma_len + colon_len + 1);
+            if (NULL == result) return NULL;
+            sprintf(result, "%s:%s,", key, "null");
+            break;
+        case CJLIB_ARRAY:
+            break;
+        default:
+            break;
+    }
+
+    return result;
+}
+
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
-    (void) src;
+    struct cjlib_queue object_data_q;     // The queue where all nodes are stored.
+    struct cjlib_queue pending_objects_q; // The queue where the object to be expanded are stored.
+    
+    cjlib_dict_node_t *field;           // The current key:paired field from the JSON in memory. (contains both the key and data)
+    struct cjlib_json_data *field_data; // The data of the current field.
 
-/*
-    struct cjlib_queue object_data_q;
-    struct cjlib_stack incomplete_data_stc;
-    struct incomplete_property_str curr_incomp_p;
-
+    // Initialize the queue.
     cjlib_queue_init(&object_data_q);
-    cjlib_stack_init(&incomplete_data_stc);
+    cjlib_queue_init(&pending_objects_q);
 
-    curr_incomp_p = (struct incomplete_property_str) {
-        .i_state       = (char *) malloc(OBJECT_STR_STATE_INIT_LEN),
-        //.i_data.object =  
-    };
-
+    // Returns Queue<cjlib_dict_node *> 
+    if (-1 == cjlib_dict_postorder(&object_data_q, src)) return NULL;
 
     do {
-        
-    } while (!cjlib_queue_is_empty(&object_data_q));
-*/
+        cjlib_queue_deqeue((void *) &field, sizeof(cjlib_dict_node_t *), &object_data_q);
+
+        // obtain the data
+        field_data = (struct cjlib_json_data *) CJLIB_DICT_NODE_DATA(field);
+
+        if (field_data->c_datatype == CJLIB_STRING) {
+            char *result = key_value_paired_stringtify(field_data, CJLIB_DICT_NODE_KEY(field));
+            (void) printf("%s\n", result); // TODO - REMOVE THIS
+
+            free(result);
+        } 
+    } while(!cjlib_queue_is_empty(&object_data_q));
+
+
     return NULL;
 }
 

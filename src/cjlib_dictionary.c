@@ -110,7 +110,7 @@ int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const struct avl_bs_t
 
     do {
         if (NULL != root) {
-            if (-1 == cjlib_queue_enqeue((void *) root, sizeof(struct cjlib_json_data), &post_order_data_q)) return -1;
+            if (-1 == cjlib_queue_enqeue((void *) &root, sizeof(struct cjlib_json_data *), &post_order_data_q)) return -1;
         }
         
         if (NULL != root && NULL != root->avl_left) {
