@@ -29,10 +29,10 @@
 struct cjlib_json_data;
 
 // Requires a pointer and accesses the key of a node.
-#define CJLIB_DICT_NODE_KEY(NODE_PTR) NODE_PTR->avl_key
+#define CJLIB_DICT_NODE_KEY(NODE_PTR) (NODE_PTR)->avl_key
 
 // Requires a pointer and accesses the data of a node.
-#define CJLIB_DICT_NODE_DATA(NODE_PTR) NODE_PTR->avl_data
+#define CJLIB_DICT_NODE_DATA(NODE_PTR) (NODE_PTR)->avl_data
 
 /**
  * AVL Binary search tree node.

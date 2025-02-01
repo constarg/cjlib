@@ -29,7 +29,9 @@
 #include "cjlib_dictionary.h"
 #include "cjlib_stack.h"
 #include "include/cjlib_dictionary.h"
+#include "include/cjlib_list.h"
 #include "include/cjlib_queue.h"
+#include "include/cjlib_stack.h"
 
 #define DOUBLE_QUOTES         (0x22) // ASCII representative of "
 #define CURLY_BRACKETS_OPEN   (0x7B) // ASCII representative of {
@@ -75,17 +77,43 @@ struct incomplete_property
  */
 struct incomplete_property_str
 {
-    char *i_state; // How much of the object/array is complete.
-    union 
-    {
-        cjlib_json_object *object;
-        cjlib_json_array *array;
+    char *i_key; // The key of the current incomplete element.
+    char *i_state; // How much of the JSON stringtifying process is done for the incomplete data.
+    enum cjlib_json_datatypes i_type; // The type of the incompelte object (object or array)
+    struct cjlib_queue *i_pending_data_q; // The data that must be stored in the incomplete object (but not expanded yet).
+    union {
+        cjlib_json_object *object; // The incomplete data is an object.
+        cjlib_json_array *array;   // The incompelte data is an array.
     } i_data;
 };
 
-static void incomplete_property_init(struct incomplete_property *src)
+static inline void incomplete_property_init(struct incomplete_property *src)
 {
     (void) memset(src, 0x0, sizeof(struct incomplete_property));
+}
+
+static inline void incomplete_property_str_init(struct incomplete_property_str *src) 
+{
+    (void) memset(src, 0x0, sizeof(struct incomplete_property_str));
+}
+
+/**
+ * Recieve the current active state of an object and expanded using
+ * by storing the @data on the end of the @state.
+ *
+ * @param state The state of the incomplete data untill now.
+ * @param data The data to add to the state.
+ * @return The new state on success, otherwise NULL.
+ */
+static inline char *incomplete_property_str_expand_state
+(const char *state, const char *data)
+{
+    char *new_state = (char *) malloc(strlen(state) + strlen(data) + 1);
+    if (NULL == new_state) return NULL;
+
+    sprintf(new_state, "%s%s", state, data);
+
+    return new_state;
 }
 
 int cjlib_json_object_set
@@ -726,7 +754,8 @@ read_err:
  * @return A string representing an entry of the JSON file (Format KEY : DATA,) -> (KEY COLON DATA COMMA) in success, 
  * otherwise NULL is returned.
  */
-static char *key_value_paired_stringtify(const struct cjlib_json_data *restrict src, const char *restrict key)
+static char *simple_key_value_paired_stringtify
+(const struct cjlib_json_data *restrict src, const char *restrict key)
 {
     const size_t comma_len = 1;
     const size_t colon_len = 1;
@@ -735,7 +764,7 @@ static char *key_value_paired_stringtify(const struct cjlib_json_data *restrict 
     const size_t null_len = 4;
     size_t digit_num = 0;
 
-    char *result;
+    char *result = NULL;
     switch (src->c_datatype) {
         case CJLIB_STRING:
             // LEN(KEY) + LEN(:) + LEN(VALUE) + LEN(,) + LEN("\0")
@@ -765,7 +794,54 @@ static char *key_value_paired_stringtify(const struct cjlib_json_data *restrict 
             if (NULL == result) return NULL;
             sprintf(result, "%s:%s,", key, "null");
             break;
-        case CJLIB_ARRAY:
+        default:
+            break;
+    }
+
+    return result;
+}
+
+/**
+ * Take data from an array as an argument and encode it to the format
+ * of the JSON like array.
+ *
+ * @param src The data of the JSON array.
+ * @return A string representing the format of JSON array data ( DATA, -> DATA COMMA)
+ */
+static inline char *array_data_strintify(struct cjlib_json_data *restrict src) 
+{
+    const size_t comma_len         = 1;
+    const size_t boolean_true_len  = 4;
+    const size_t boolean_false_len = 5;
+    const size_t null_len = 4;
+    size_t digit_num = 0;
+
+    char *result = NULL;
+    switch (src->c_datatype) {
+        case CJLIB_STRING:
+            result = strdup(src->c_value.c_str);
+            break;
+        case CJLIB_NUMBER:
+            digit_num = snprintf(NULL, 0, "%f", src->c_value.c_num);
+            result = (char *) malloc(digit_num + comma_len + 1);
+            if (NULL == result) return NULL;
+            sprintf(result, "%f,", src->c_value.c_num);
+            break;
+        case CJLIB_BOOLEAN:
+            if (src->c_value.c_boolean) {
+                result = (char *) malloc(boolean_true_len + comma_len + 1);
+                if (NULL == result) return NULL;
+                sprintf(result, "%s,", "true");
+            } else {
+                result = (char *) malloc(boolean_false_len + comma_len + 1);
+                if (NULL == result) return NULL;
+                sprintf(result, "%s,", "false");
+            }
+            break;
+        case CJLIB_NULL:
+            result = (char *) malloc(null_len + comma_len + 1);
+            if (NULL == result) return NULL;
+            sprintf(result, "%s,", "null");
             break;
         default:
             break;
@@ -774,35 +850,97 @@ static char *key_value_paired_stringtify(const struct cjlib_json_data *restrict 
     return result;
 }
 
+/**
+ * Switches to another incompelete object,i.e., when a nested array or object is 
+ * detected.
+ *
+ * @param dst A pointer that points to the location to store the switched data.
+ * @param type The type of the new data.
+ * @param entry The incomplete object/array.
+ * @param entry_key The key of the key:pair combination for the incomplete object/array.
+ */
+static inline int switch_incomplete_str_data
+(struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
+ cjlib_json_object *entry)
+{
+    struct cjlib_json_data *examine_entry_data = CJLIB_DICT_NODE_DATA(entry);
+    *dst = (struct incomplete_property_str) {
+        .i_key            = strdup(CJLIB_DICT_NODE_KEY(entry)),
+        .i_type           = type,
+        .i_state          = strdup(""),
+        .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
+    };
+
+    if (NULL == dst->i_pending_data_q) return -1;
+
+    cjlib_queue_init(dst->i_pending_data_q);
+
+    if (CJLIB_OBJECT == type) dst->i_data.object = entry;
+    else dst->i_data.array = examine_entry_data->c_value.c_arr;
+
+    return 0;
+}
+
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
-    struct cjlib_queue object_data_q;     // The queue where all nodes are stored.
-    struct cjlib_queue pending_objects_q; // The queue where the object to be expanded are stored.
+    struct incomplete_property_str curr_incomp; // The currently expanding data.
+    struct cjlib_stack incomplete_st;           // The stack of incomplete data.
     
-    cjlib_dict_node_t *field;           // The current key:paired field from the JSON in memory. (contains both the key and data)
-    struct cjlib_json_data *field_data; // The data of the current field.
+    cjlib_dict_node_t *examine_entry;           // The current key:paired entry from the JSON in memory. (contains both the key and data)
+    struct cjlib_json_data *examine_entry_data; // The data of the examined entry.
+    
+    // Initiazize the incomplete data.
+    incomplete_property_str_init(&curr_incomp);
+    cjlib_stack_init(&incomplete_st);
 
-    // Initialize the queue.
-    cjlib_queue_init(&object_data_q);
-    cjlib_queue_init(&pending_objects_q);
+    switch_incomplete_str_data(&curr_incomp, CJLIB_OBJECT, (cjlib_json_object *) src);
 
-    // Returns Queue<cjlib_dict_node *> 
-    if (-1 == cjlib_dict_postorder(&object_data_q, src)) return NULL;
+    if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, 
+                                   curr_incomp.i_data.object)) return NULL;
 
-    do {
-        cjlib_queue_deqeue((void *) &field, sizeof(cjlib_dict_node_t *), &object_data_q);
+    // Put a dummy entry in the stack to start the process.
+    if (-1 == cjlib_stack_push((void *) &curr_incomp, sizeof(struct incomplete_property_str), 
+                               &incomplete_st)) return NULL;
 
-        // obtain the data
-        field_data = (struct cjlib_json_data *) CJLIB_DICT_NODE_DATA(field);
+    while (!cjlib_stack_is_empty(&incomplete_st)) {
+        if (-1 == cjlib_stack_pop((void *) &curr_incomp, sizeof(struct incomplete_property_str),
+                                  &incomplete_st)) return NULL;
 
-        if (field_data->c_datatype == CJLIB_STRING) {
-            char *result = key_value_paired_stringtify(field_data, CJLIB_DICT_NODE_KEY(field));
-            (void) printf("%s\n", result); // TODO - REMOVE THIS
+        while (!cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) {
+            // Get the entry to strintify.
+            cjlib_queue_deqeue((void *) &examine_entry, sizeof(cjlib_dict_node_t *), curr_incomp.i_pending_data_q);
+            examine_entry_data = CJLIB_DICT_NODE_DATA(examine_entry);
 
-            free(result);
+            switch (examine_entry_data->c_datatype) {
+                case CJLIB_OBJECT:
+                    cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
+                                     &incomplete_st);
+
+                    if (-1 == switch_incomplete_str_data(&curr_incomp, CJLIB_OBJECT, 
+                                                         examine_entry)) return NULL;
+                    
+                    if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q,
+                                                   curr_incomp.i_data.object)) return NULL;
+                    break;
+                case CJLIB_ARRAY:
+                    cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str),
+                                     &incomplete_st);
+
+                    if (-1 == switch_incomplete_str_data(&curr_incomp, CJLIB_ARRAY, 
+                                                         examine_entry)) return NULL;
+
+                    // TODO - make something similar to postorder, but for arrays, and store
+                    // the result in the pending queue.
+                    break;
+                default:
+                    // TODO - handle the simple case here (the examine data is not object or array)
+                    break;
+            } 
+            // TODO - write a function to wrap an object with {} and an array with [].
+            // TODO - after finishing with the nested while, then free the memory of the current incomplete object
+            // before switching back to the previous incomplete object/array.
         } 
-    } while(!cjlib_queue_is_empty(&object_data_q));
-
+    } 
 
     return NULL;
 }

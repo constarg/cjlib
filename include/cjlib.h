@@ -34,7 +34,7 @@
 
 typedef double cjlib_json_num;
 typedef bool cjlib_json_bool;
-typedef char * cjlib_json_path;
+typedef char *cjlib_json_path;
 
 typedef FILE *cjlib_json_fd;
 typedef cjlib_dict_t cjlib_json_object;
