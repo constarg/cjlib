@@ -47,8 +47,6 @@
 
 #define ROOT_PROPERTY_NAME    ("") // A name used to represent the beginning of the JSON. !NO OTHER PROPERTY MUST OBTAIN THIS NAME EXCEPT ROOT~
 
-#define OBJECT_STR_STATE_INIT_LEN 1000 // The initial length of the state string (see strintify function)
-
 
 // Indicated whether the currently incomplete attribute is an object.
 #define BUILDING_OBJECT(COMP) (CURLY_BRACKETS_CLOSE == COMP)
@@ -107,7 +105,8 @@ static inline char *incomplete_property_str_expand_state
 (const char *state, const char *data, const char *key)
 {
     size_t key_size = (NULL == key)? 0 : strlen(key);
-    char *new_state = (char *) malloc(strlen(state) + strlen(data) + key_size + 1);
+    size_t colon_len = 1;
+    char *new_state = (char *) malloc(strlen(state) + strlen(data) + key_size + colon_len + 1);
     if (NULL == new_state) return NULL;
     
     if (NULL == key) {
@@ -618,7 +617,6 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
 
     if (NULL == curr_incomplete_data.i_name) goto read_err;
 
-
     // Push the first incomplete object into the stack.
     if (-1 == cjlib_stack_push((void *) &curr_incomplete_data, sizeof(struct incomplete_property),
                                &incomplate_data_stc))
@@ -812,9 +810,9 @@ static char *simple_key_value_paired_stringtify
  * @param entry The incomplete object/array.
  * @param entry_key The key of the key:pair combination for the incomplete object/array.
  */
-static inline int switch_incomplete_str_data
+static inline int switch_from_incomplete_obj_str_data
 (struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
- cjlib_json_object *entry)
+ cjlib_json_object *entry, bool init)
 {
     struct cjlib_json_data *examine_entry_data = CJLIB_DICT_NODE_DATA(entry);
     *dst = (struct incomplete_property_str) {
@@ -828,12 +826,37 @@ static inline int switch_incomplete_str_data
 
     cjlib_queue_init(dst->i_pending_data_q);
 
-    if (CJLIB_OBJECT == type) dst->i_data.object = entry;
-    else dst->i_data.array = examine_entry_data->c_value.c_arr;
+    if (init) {
+        if (CJLIB_OBJECT == type) dst->i_data.object = entry;
+    } else {
+        if (CJLIB_OBJECT == type) dst->i_data.object = examine_entry_data->c_value.c_obj;
+        else dst->i_data.array = examine_entry_data->c_value.c_arr;
+    }
 
     return 0;
 }
 
+static inline int switch_from_incomplete_arr_str_data
+(struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
+struct cjlib_json_data *entry_data, const char *key)
+{
+    struct cjlib_json_data *examine_entry_data = entry_data;
+    *dst = (struct incomplete_property_str) {
+        .i_key            = strdup(key),
+        .i_type           = type,
+        .i_state          = strdup(""),
+        .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
+    };
+
+    if (NULL == dst->i_pending_data_q) return -1;
+
+    cjlib_queue_init(dst->i_pending_data_q);
+
+    if (CJLIB_OBJECT == type) dst->i_data.object = examine_entry_data->c_value.c_obj;
+    else dst->i_data.array = examine_entry_data->c_value.c_arr;
+
+    return 0;
+}
 /**
  * Convert the provided @src list into a queue.
  *
@@ -852,7 +875,7 @@ static int convert_list_to_queue(struct cjlib_queue *restrict dst, const struct 
 
     CJLIB_LIST_FOR_EACH_PTR(item, src, struct cjlib_json_data) {
         // Store the pointers of each element in the list into the @dst
-        if ( -1 == cjlib_queue_enqeue((void *) &item, sizeof(struct cjlib_json_data *), dst)) {
+        if (-1 == cjlib_queue_enqeue((void *) &item, sizeof(struct cjlib_json_data *), dst)) {
             return -1;
         }
     }
@@ -876,7 +899,7 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     incomplete_property_str_init(&curr_incomp);
     cjlib_stack_init(&incomplete_st);
 
-    if (-1 == switch_incomplete_str_data(&curr_incomp, CJLIB_OBJECT, (cjlib_json_object *) src)) return NULL;
+    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, (cjlib_json_object *) src, true)) return NULL;
 
     if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
 
@@ -888,30 +911,32 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
         if (-1 == cjlib_stack_pop((void *) &curr_incomp, sizeof(struct incomplete_property_str),
                                   &incomplete_st)) return NULL;
 
-        tmp_state = curr_incomp.i_state;
-        if (CJLIB_OBJECT == curr_incomp.i_type) {
-            curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, tmp_key);
-            free(tmp_key);
-            tmp_key = NULL;
-        } else {
-            curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, NULL); 
-        }
+        // If the value_str is NULL, then, the nested while have not run yet.
+        if (NULL != value_str) {
+            tmp_state = curr_incomp.i_state;
+            if (CJLIB_OBJECT == curr_incomp.i_type) {
+                curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, tmp_key);
+                free(tmp_key);
+                tmp_key = NULL;
+            } else {
+                curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, NULL); 
+            }
 
-        free(value_str);
-        free(tmp_state);
-        tmp_state = NULL;
-        value_str = NULL;
+            free(value_str);
+            free(tmp_state);
+            tmp_state = NULL;
+            value_str = NULL;
+        }
 
         while (!cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) {
             // Get the entry to strintify.
-
             if (CJLIB_OBJECT == curr_incomp.i_type) {
                 // The queue of an incomplete object consists of NODES of avl binary tree.
                 cjlib_queue_deqeue((void *) &examine_entry, sizeof(cjlib_dict_node_t *), curr_incomp.i_pending_data_q);
                 examine_entry_data = CJLIB_DICT_NODE_DATA(examine_entry);
             } else {
                 // The queue of an incomplete array consists of NODES of a linked list.
-                cjlib_queue_deqeue((void *) &examine_entry_data, sizeof(struct cjlib_json_data), curr_incomp.i_pending_data_q);
+                cjlib_queue_deqeue((void *) &examine_entry_data, sizeof(struct cjlib_json_data *), curr_incomp.i_pending_data_q);
             }
 
             switch (examine_entry_data->c_datatype) {
@@ -919,14 +944,30 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
                                      &incomplete_st);
 
-                    if (-1 == switch_incomplete_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry)) return NULL;
+                    /**
+                     * (gdb) print(*examine_entry_data)
+                       $23 = {c_value = {c_str = 0x40a640 "\200\231@", c_num = 2.0932889485015272e-317, c_boolean = 64, c_obj = 0x40a640, 
+                       c_null = 0x40a640, c_arr = 0x40a640}, c_datatype = CJLIB_OBJECT}
+                        
+                       (gdb) print(*examine_entry_data.c_value.c_obj)
+                       $24 = {avl_data = 0x409980, avl_key = 0x4098c0 "request", avl_left = 0x409dd0, avl_right = 0x409c90}
+                       (gdb) n
+                       cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
+                       (gdb) n
+                       <----- HERE IS THE BUG ----- > TODO - When switching from array, DO NOT pass the examine entry.
+                       if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry, false)) return NULL;
+                       (gdb) 
+                         if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
+                   */
+
+                    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry, false)) return NULL;
                     
                     if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
                     break;
                 case CJLIB_ARRAY:
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), &incomplete_st);
 
-                    if (-1 == switch_incomplete_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry)) return NULL;
+                    if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, curr_incomp.i_key)) return NULL;
 
                     convert_list_to_queue(curr_incomp.i_pending_data_q, curr_incomp.i_data.array);
                     break;

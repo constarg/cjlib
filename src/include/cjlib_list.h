@@ -34,7 +34,7 @@
 /**
  * For each implementation, but the ITEM is a pointer
  */
-#define CJLIB_LIST_FOR_EACH_PTR(ITEM_PTR, LIST_PTR, TYPE)                                                                        \
+#define CJLIB_LIST_FOR_EACH_PTR(ITEM_PTR, LIST_PTR, TYPE)                                                                \
     for (struct cjlib_list_node *node = (LIST_PTR)->l_head, *keep = 0x0; node != NULL; node = node->l_next, keep = 0x0)  \
         for ((ITEM_PTR) = ((TYPE *) node->l_data); keep == 0x0; keep = node)
 
