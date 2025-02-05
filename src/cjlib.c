@@ -812,7 +812,7 @@ static char *simple_key_value_paired_stringtify
  */
 static inline int switch_from_incomplete_obj_str_data
 (struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
- cjlib_json_object *entry, bool init)
+ cjlib_json_object *entry)
 {
     struct cjlib_json_data *examine_entry_data = CJLIB_DICT_NODE_DATA(entry);
     *dst = (struct incomplete_property_str) {
@@ -826,12 +826,8 @@ static inline int switch_from_incomplete_obj_str_data
 
     cjlib_queue_init(dst->i_pending_data_q);
 
-    if (init) {
-        if (CJLIB_OBJECT == type) dst->i_data.object = entry;
-    } else {
-        if (CJLIB_OBJECT == type) dst->i_data.object = examine_entry_data->c_value.c_obj;
-        else dst->i_data.array = examine_entry_data->c_value.c_arr;
-    }
+    if (CJLIB_OBJECT == type) dst->i_data.object = entry;
+    else dst->i_data.array = examine_entry_data->c_value.c_arr;
 
     return 0;
 }
@@ -899,9 +895,9 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     incomplete_property_str_init(&curr_incomp);
     cjlib_stack_init(&incomplete_st);
 
-    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, (cjlib_json_object *) src, true)) return NULL;
+    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, (cjlib_json_object *) src)) return NULL;
 
-    if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
+    if (-1 == cjlib_dict_preorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
 
     // Put a dummy entry in the stack to start the process.
     if (-1 == cjlib_stack_push((void *) &curr_incomp, sizeof(struct incomplete_property_str), 
@@ -944,25 +940,10 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
                                      &incomplete_st);
 
-                    /**
-                     * (gdb) print(*examine_entry_data)
-                       $23 = {c_value = {c_str = 0x40a640 "\200\231@", c_num = 2.0932889485015272e-317, c_boolean = 64, c_obj = 0x40a640, 
-                       c_null = 0x40a640, c_arr = 0x40a640}, c_datatype = CJLIB_OBJECT}
-                        
-                       (gdb) print(*examine_entry_data.c_value.c_obj)
-                       $24 = {avl_data = 0x409980, avl_key = 0x4098c0 "request", avl_left = 0x409dd0, avl_right = 0x409c90}
-                       (gdb) n
-                       cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
-                       (gdb) n
-                       <----- HERE IS THE BUG ----- > TODO - When switching from array, DO NOT pass the examine entry.
-                       if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry, false)) return NULL;
-                       (gdb) 
-                         if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
-                   */
-
-                    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry, false)) return NULL;
+		            if (CJLIB_ARRAY == curr_incomp.i_type) examine_entry = examine_entry_data->c_value.c_obj;
+                    if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry)) return NULL;
                     
-                    if (-1 == cjlib_dict_postorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
+                    if (-1 == cjlib_dict_preorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
                     break;
                 case CJLIB_ARRAY:
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), &incomplete_st);
@@ -999,6 +980,7 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     } 
 
     free(curr_incomp.i_key);
+
     // Return the now completed JSON.
     return curr_incomp.i_state;
 }

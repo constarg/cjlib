@@ -72,14 +72,14 @@ static inline cjlib_dict_t *cjlib_make_dict(void)
 }
 
 /**
- * Travel through the whole tree using the POST-ORDER method. This function builds a 
+ * Travel through the whole tree using the PRE-ORDER method. This function builds a 
  * queue that consists of all the available nodes in the dictionary of interest. 
  *
  * @param dst A pointer pointing to the memory where the built queue is stored.
  * @param src A pointer to the dictionary (or object) of interest.
  * @return -1 in case an error occur, otherwise -1.
 */
-extern int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const cjlib_dict_t *src);
+extern int cjlib_dict_preorder(struct cjlib_queue *restrict dst, const cjlib_dict_t *src);
 
 /**
  * Searches for an element in a dictionary based on its associated key.

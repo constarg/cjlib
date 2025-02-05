@@ -32,6 +32,7 @@
 #include "cjlib_dictionary.h"
 #include "cjlib.h"
 #include "cjlib_queue.h"
+#include "cjlib_stack.h"
 
 // Those constants are used in the search/insert/delete functions.
 #define S_RETRIEVE_KEY_NODE        (0x0)
@@ -99,37 +100,44 @@ enum rotation_after_left_deletion_type
 /**
  * Set every node of a AVL tree into a QEUEUE
  */
-int cjlib_dict_postorder(struct cjlib_queue *restrict dst, const struct avl_bs_tree_node *src)
+int cjlib_dict_preorder(struct cjlib_queue *restrict dst, const struct avl_bs_tree_node *src)
 {
-    struct cjlib_queue post_order_node_q; // The queue used for the post order traversal.
-    struct cjlib_queue post_order_data_q; 
-    cjlib_queue_init(&post_order_node_q);
-    cjlib_queue_init(&post_order_data_q);
+    struct cjlib_stack pre_order_traversal_st; // The stack used for the preorder traversal.
+    struct cjlib_queue pre_order_data_q; 
+    cjlib_stack_init(&pre_order_traversal_st);
+    cjlib_queue_init(&pre_order_data_q);
 
     struct avl_bs_tree_node *root = (struct avl_bs_tree_node *) src; // Set the root of the whole tree in the local variable.
 
+    // 1. PROCESS ROOT -> 2. VISIT LEFT SUBTREE -> 3. VISIT RIGHT SUBTREE -> GO TO (1.)
     do {
         if (NULL != root) {
-            if (-1 == cjlib_queue_enqeue((void *) &root, sizeof(struct cjlib_json_data *), &post_order_data_q)) return -1;
+            // Process the current Root before left or right sub tree.
+            // 1. Process.
+            if (-1 == cjlib_queue_enqeue(&root, sizeof(struct avl_bs_tree_node *), &pre_order_data_q)) return -1;
+        }
+
+        // Check the next node to process is available.
+        if (NULL == root) {
+            // Check if this is the last node.
+            if (cjlib_stack_is_empty(&pre_order_traversal_st)) break;
+
+            // Reached a leaf (either left or right), go to the parent node.
+            // 3. VISIT RIGHT SUBTREE.
+            if (-1 == cjlib_stack_pop(&root, sizeof(struct avl_bs_tree_node *), &pre_order_traversal_st)) return -1;
+            
+            // After reaching a left leaf, then go to the right subtree of the leaf's parent.
+            root = root->avl_right;
+        } else {
+            // 2. VISIT LEFT SUBTREE.
+            if (-1 == cjlib_stack_push(&root, sizeof(struct avl_bs_tree_node *), &pre_order_traversal_st)) return -1;
+            // Proceed to the next left tree, untill reaching a leaf (next left is null).
+            root = root->avl_left;
         }
         
-        if (NULL != root && NULL != root->avl_left) {
-            if (-1 == cjlib_queue_enqeue((void *) &root, sizeof(struct avl_bs_tree_node *), &post_order_node_q)) return -1;
-        }
+    } while(!cjlib_stack_is_empty(&pre_order_traversal_st));
 
-        if (NULL != root->avl_right) {
-            if (-1 == cjlib_queue_enqeue((void *) &root->avl_right, sizeof(struct avl_bs_tree_node *), &post_order_node_q)) return -1;
-        }
-
-        if (NULL != root->avl_left) {
-            root = src->avl_left;
-        } else {
-            cjlib_queue_deqeue(&root, sizeof(struct avl_bs_tree_node *), &post_order_node_q);
-            break;
-        }
-    } while(!cjlib_queue_is_empty(&post_order_node_q));
-
-    (void) memcpy(dst, &post_order_data_q, sizeof(struct cjlib_queue));
+    (void) memcpy(dst, &pre_order_data_q, sizeof(struct cjlib_stack));
 
     return 0;
 }
