@@ -761,13 +761,13 @@ read_err:
 static inline char *wrap_complete_entry(const char *entry_state, char opening_symbol, 
                                         char closing_symbol) 
 {
-    size_t additional_size = 3; // The size of {} or [].
+    size_t additional_size = 2; // The size of {} or [].
     size_t wrapped_size = strlen(entry_state) + additional_size;
 
     char *wrapped_state = (char *) malloc(wrapped_size + 1);
     if (NULL == wrapped_state) return NULL;
 
-    (void) sprintf(wrapped_state, "%c%s%c,", opening_symbol, entry_state, closing_symbol); 
+    (void) sprintf(wrapped_state, "%c%s%c", opening_symbol, entry_state, closing_symbol); 
 
     return wrapped_state;
 }
@@ -928,8 +928,7 @@ static inline int convert_list_to_queue(struct cjlib_queue *restrict dst, const 
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
     /**
-    *  TODO - 1. Why only a few kies are wrapped with double quotes, while the majority isn't
-    *         2. Why some fields don't appear in the stringtifying version? (look type field in the JSON).
+    *  TODO - 1. Why some fields don't appear in the stringtifying version? (look type field in the JSON).
     */
     struct incomplete_property_str curr_incomp; // The currently expanding data.
     struct cjlib_stack incomplete_st;           // The stack of incomplete data.
@@ -940,12 +939,15 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     char *tmp_state = NULL; // Used to control the memory (see default case in the switch below)
     char *tmp_key   = NULL; // Used to temporary store the key of the complete JSON object/array.
     char *value_str = NULL; // Used to temporary store the strintify data (see default case in the switch below)
-    
+
     char opening_symbol_obj = CURLY_BRACKETS_OPEN;
     char opening_symbol_arr = SQUARE_BRACKETS_OPEN;
     char closing_symbol_obj = CURLY_BRACKETS_CLOSE;
     char closing_symbol_arr = SQUARE_BRACKETS_CLOSE;
 
+    char opening_symbol_str = DOUBLE_QUOTES;
+    char closing_symbol_str = DOUBLE_QUOTES;
+    
     char opening_symbol;
     char closing_symbol;
 
@@ -1006,7 +1008,8 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
                 case CJLIB_ARRAY:
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), &incomplete_st);
 
-                    if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, CJLIB_DICT_NODE_KEY(examine_entry))) return NULL;
+                    if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, 
+                                                                  CJLIB_DICT_NODE_KEY(examine_entry))) return NULL;
 
                     convert_list_to_queue(curr_incomp.i_pending_data_q, curr_incomp.i_data.array);
                     break;
@@ -1015,8 +1018,12 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
                     if (CJLIB_OBJECT == curr_incomp.i_type) {
                         value_str = simple_key_value_paired_stringtify(CJLIB_DICT_NODE_DATA(examine_entry));
+                        tmp_key = wrap_complete_entry(CJLIB_DICT_NODE_KEY(examine_entry),opening_symbol_str, closing_symbol_str);
                         curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, 
-                                                                                   CJLIB_DICT_NODE_KEY(examine_entry));
+                                                                                   tmp_key);
+
+                        free(tmp_key);
+                        tmp_key = NULL;
                     } else {
                         value_str = simple_key_value_paired_stringtify(examine_entry_data);
                         curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, NULL);
