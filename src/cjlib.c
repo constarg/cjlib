@@ -1133,5 +1133,7 @@ int cjlib_json_dump(const struct cjlib_json *restrict src)
     if (NULL == json_content) return -1;
 
     (void) fwrite((void *) json_content, strlen(json_content), 1, src->c_fp);
+
+    free((void *) json_content);
     return 0;
 }
