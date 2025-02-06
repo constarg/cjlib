@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
+
 #include "cjlib.h"
 
 #include "cjlib_list.h"
@@ -50,11 +52,14 @@ int main(void)
 
     cjlib_json_read(&json_file);
 
-    /*if (-1 == cjlib_json_get(&dst, &json_file, "programming_languages")) {
+    if (-1 == cjlib_json_get(&dst, &json_file, "version")) {
         (void) printf("Error\n");
         exit(-1);
     }
 
+    (void) printf("%s\n", dst.c_value.c_str);
+
+    /*
     struct cjlib_json_data test;
     CJLIB_LIST_FOR_EACH(test, dst.c_value.c_arr, struct cjlib_json_data) {
         (void) printf("%s\n", test.c_value.c_str);
@@ -86,8 +91,9 @@ int main(void)
     (void) printf("%s\n", dst.c_value.c_str);*/
  
 
-    free((void *) cjlib_json_stringtify(&json_file));
+    //free((void *) cjlib_json_stringtify(&json_file));
 
+    //cjlib_json_dump(&json_file);
     // // Close the json file.
     cjlib_json_close(&json_file);
 }

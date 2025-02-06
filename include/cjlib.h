@@ -246,7 +246,7 @@ static inline int cjlib_json_array_get(struct cjlib_json_data *restrict dst, int
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_object_set
-(cjlib_json_object *src, const char *restrict key,
+(cjlib_json_object **src, const char *restrict key,
  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype);
 
 /**
@@ -269,7 +269,7 @@ extern int cjlib_json_object_get
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_object_remove
-(struct cjlib_json_data *restrict dst, cjlib_json_object *src,
+(struct cjlib_json_data *restrict dst, cjlib_json_object **src,
  const char *key);
 
 /**
@@ -286,7 +286,7 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_set
 (struct cjlib_json *restrict src, const char *restrict key,
  struct cjlib_json_data *restrict value, enum cjlib_json_datatypes datatype)
 {
-    return cjlib_json_object_set(src->c_dict, key, value, datatype);
+    return cjlib_json_object_set(&src->c_dict, key, value, datatype);
 }
 
 /**
@@ -313,10 +313,10 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_get
  * @return 0 on success, otherwise -1.
 */
 static CJLIB_ALWAYS_INLINE int cjlib_json_remove
-(struct cjlib_json_data *restrict dst, const struct cjlib_json *restrict src,
+(struct cjlib_json_data *restrict dst, struct cjlib_json *restrict src,
  const char *restrict key)
 {
-    return cjlib_json_object_remove(dst, src->c_dict, key);
+    return cjlib_json_object_remove(dst, &src->c_dict, key);
 }
 
 /**

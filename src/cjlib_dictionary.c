@@ -712,8 +712,10 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
         largest_key_of_left_subtree_parent = search_node(*dict, largest_key_of_left_subtree->avl_key,
                                                          S_RETRIEVE_KEY_NODE_PARENT);
 
-        removed->avl_key = largest_key_of_left_subtree->avl_key;
-        (void) memcpy(largest_key_of_left_subtree->avl_data, removed->avl_data, sizeof(struct cjlib_json_data));
+        free(removed->avl_key);
+        removed->avl_key = strdup(largest_key_of_left_subtree->avl_key);
+        (void) memcpy(removed->avl_data, largest_key_of_left_subtree->avl_data, sizeof(struct cjlib_json_data));
+        //(void) memcpy(largest_key_of_left_subtree->avl_data, removed->avl_data, sizeof(struct cjlib_json_data));
 
         removed = largest_key_of_left_subtree;
         parent  = largest_key_of_left_subtree_parent;
@@ -723,11 +725,21 @@ int cjlib_dict_remove(struct avl_bs_tree_node **dict, const char *restrict key)
     if (removed->avl_left) child_of_removed = removed->avl_left;
     else child_of_removed                   = removed->avl_right;
 
+    if (is_root) {
+        *dict = child_of_removed;
+    } else {
+        if (parent->avl_left == removed) {
+            parent->avl_left = child_of_removed;
+        } else {
+            parent->avl_right = child_of_removed;
+        }
+    }
+    /*
     if (parent->avl_left == removed) {
         parent->avl_left = child_of_removed;
     } else {
         parent->avl_right = child_of_removed;
-    }
+    }*/
 
     perform_rotation_after_delete(removed, dict);
 
