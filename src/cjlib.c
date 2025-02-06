@@ -75,6 +75,7 @@ struct incomplete_property_str
 {
     char *i_key; // The key of the current incomplete element.
     char *i_state; // How much of the JSON stringtifying process is done for the incomplete data.
+    bool set_comma; // Determines whether to set commad when completing an object/array.
     enum cjlib_json_datatypes i_type; // The type of the incompelte object (object or array)
     struct cjlib_queue *i_pending_data_q; // The data that must be stored in the incomplete object (but not expanded yet).
     union {
@@ -631,6 +632,9 @@ int cjlib_json_read(struct cjlib_json *restrict dst)
         p_value = parse_property_value((const struct cjlib_json *) dst, p_name);
         if (NULL == p_value) goto read_err;
 
+        // If the current data is only a 'comma', nothing else, then ignore it.
+        if (!strcmp(p_value, ",")) goto read_cleanup;
+        
         if (BUILDING_OBJECT(compl_indicator)) {
             if (!strcmp(ROOT_PROPERTY_NAME, p_name) && 
                 !strcmp(ROOT_PROPERTY_NAME, curr_incomplete_data.i_name)) goto read_cleanup;
@@ -759,15 +763,19 @@ read_err:
  * Otherwise NULL.
  */
 static inline char *wrap_complete_entry(const char *entry_state, char opening_symbol, 
-                                        char closing_symbol) 
+                                        char closing_symbol, bool set_comma) 
 {
-    size_t additional_size = 2; // The size of {} or [].
+    size_t additional_size = 3; // The size of {} or [] + comma.
     size_t wrapped_size = strlen(entry_state) + additional_size;
 
     char *wrapped_state = (char *) malloc(wrapped_size + 1);
     if (NULL == wrapped_state) return NULL;
 
-    (void) sprintf(wrapped_state, "%c%s%c", opening_symbol, entry_state, closing_symbol); 
+    if (set_comma) {
+        (void) sprintf(wrapped_state, "%c%s%c,", opening_symbol, entry_state, closing_symbol); 
+    } else {
+        (void) sprintf(wrapped_state, "%c%s%c", opening_symbol, entry_state, closing_symbol); 
+    }
 
     return wrapped_state;
 }
@@ -777,11 +785,12 @@ static inline char *wrap_complete_entry(const char *entry_state, char opening_sy
  * and produce a string that is in format KEY : DATA, 
  *
  * @param src The data of the field.
+ * @param set_comma Determines whether to insert a comma or not.
  * @return A string representing an entry of the JSON file (Format KEY : DATA,) -> (KEY COLON DATA COMMA) in success, 
  * otherwise NULL is returned.
  */
 static char *simple_key_value_paired_stringtify
-(const struct cjlib_json_data *restrict src)
+(const struct cjlib_json_data *restrict src, bool set_comma)
 {
     const size_t comma_len = 1;
     const size_t colon_len = 1;
@@ -797,29 +806,53 @@ static char *simple_key_value_paired_stringtify
             // LEN(KEY) + LEN(:) + LEN(VALUE) + LEN(,) + LEN("\0")
             result = (char *) malloc(strlen(src->c_value.c_str) + comma_len + colon_len + double_quotes_len + 1);
             if (NULL == result) return NULL;
-            (void) sprintf(result, "\"%s\",", src->c_value.c_str);
+            if (set_comma) {
+                (void) sprintf(result, "\"%s\",", src->c_value.c_str);
+            } else {
+                (void) sprintf(result, "\"%s\"", src->c_value.c_str);
+            }
             break;
         case CJLIB_NUMBER:
             digit_num = snprintf(NULL, 0, "%f", src->c_value.c_num);
             result = (char *) malloc(digit_num + comma_len + colon_len + 1);
             if (NULL == result) return NULL;
-            (void) sprintf(result, "%f,", src->c_value.c_num);
+
+            if (set_comma) {
+                (void) sprintf(result, "%f,", src->c_value.c_num);
+            } else {
+                (void) sprintf(result, "%f", src->c_value.c_num);
+            }
             break;
         case CJLIB_BOOLEAN:
             if (src->c_value.c_boolean) {
                 result = (char *) malloc(boolean_true_len + comma_len + colon_len + 1);
                 if (NULL == result) return NULL;
-                (void) sprintf(result, "%s,", "true");
+
+                if (set_comma) {
+                    (void) sprintf(result, "%s,", "true");
+                } else {
+                    (void) sprintf(result, "%s", "true");
+                }
             } else {
                 result = (char *) malloc(boolean_false_len + comma_len + colon_len + 1);
                 if (NULL == result) return NULL;
-                (void) sprintf(result, "%s,", "false");
+
+                if (set_comma) {
+                    (void) sprintf(result, "%s,", "false");
+                } else {
+                    (void) sprintf(result, "%s", "false");
+                }
             }
             break;
         case CJLIB_NULL:
             result = (char *) malloc(null_len + comma_len + colon_len + 1);
             if (NULL == result) return NULL;
-            (void) sprintf(result, "%s,", "null");
+
+            if (set_comma) {
+                (void) sprintf(result, "%s,", "null");
+            } else {
+                (void) sprintf(result, "%s", "null");
+            }
             break;
         default:
             break;
@@ -853,6 +886,7 @@ static inline int switch_from_incomplete_obj_str_data
     struct cjlib_json_data *examine_entry_data = CJLIB_DICT_NODE_DATA(entry);
     *dst = (struct incomplete_property_str) {
         .i_key            = key_wrapped,
+        .set_comma        = true,
         .i_type           = type,
         .i_state          = strdup(""),
         .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
@@ -884,6 +918,7 @@ struct cjlib_json_data *entry_data, const char *key)
     struct cjlib_json_data *examine_entry_data = entry_data;
     *dst = (struct incomplete_property_str) {
         .i_key            = key_wrapped,
+        .set_comma        = true,
         .i_type           = type,
         .i_state          = strdup(""),
         .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
@@ -924,12 +959,8 @@ static inline int convert_list_to_queue(struct cjlib_queue *restrict dst, const 
     return 0;
 }
 
-
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
-    /**
-    *  TODO - 1. Why some fields don't appear in the stringtifying version? (look type field in the JSON).
-    */
     struct incomplete_property_str curr_incomp; // The currently expanding data.
     struct cjlib_stack incomplete_st;           // The stack of incomplete data.
     
@@ -939,6 +970,8 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     char *tmp_state = NULL; // Used to control the memory (see default case in the switch below)
     char *tmp_key   = NULL; // Used to temporary store the key of the complete JSON object/array.
     char *value_str = NULL; // Used to temporary store the strintify data (see default case in the switch below)
+
+    bool set_comma_tmp = true; // Helper, to maintain the information about whether to put comma or not on completion (see incomplete_str & on switch below.)
 
     char opening_symbol_obj = CURLY_BRACKETS_OPEN;
     char opening_symbol_arr = SQUARE_BRACKETS_OPEN;
@@ -972,16 +1005,16 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
             tmp_state = curr_incomp.i_state;
             if (CJLIB_OBJECT == curr_incomp.i_type) {
                 curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, tmp_key);
-                free(tmp_key);
-                tmp_key = NULL;
             } else {
                 curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, NULL); 
             }
 
+            free(tmp_key);
             free(value_str);
             free(tmp_state);
             tmp_state = NULL;
             value_str = NULL;
+            tmp_key   = NULL;
         }
 
         while (!cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) {
@@ -997,35 +1030,51 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
             switch (examine_entry_data->c_datatype) {
                 case CJLIB_OBJECT:
+                    if (cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) set_comma_tmp = false;
+                
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), 
                                      &incomplete_st);
 
-		            if (CJLIB_ARRAY == curr_incomp.i_type) examine_entry = examine_entry_data->c_value.c_obj;
+                    if (CJLIB_ARRAY == curr_incomp.i_type) examine_entry = examine_entry_data->c_value.c_obj;
                     if (-1 == switch_from_incomplete_obj_str_data(&curr_incomp, CJLIB_OBJECT, examine_entry)) return NULL;
+
+                    curr_incomp.set_comma = set_comma_tmp;
                     
                     if (-1 == cjlib_dict_preorder(curr_incomp.i_pending_data_q, curr_incomp.i_data.object)) return NULL;
                     break;
                 case CJLIB_ARRAY:
+                    if (cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) set_comma_tmp = false;
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), &incomplete_st);
 
                     if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, 
                                                                   CJLIB_DICT_NODE_KEY(examine_entry))) return NULL;
 
+                    curr_incomp.set_comma = set_comma_tmp;
                     convert_list_to_queue(curr_incomp.i_pending_data_q, curr_incomp.i_data.array);
                     break;
                 default:
                     tmp_state = curr_incomp.i_state;
 
                     if (CJLIB_OBJECT == curr_incomp.i_type) {
-                        value_str = simple_key_value_paired_stringtify(CJLIB_DICT_NODE_DATA(examine_entry));
-                        tmp_key = wrap_complete_entry(CJLIB_DICT_NODE_KEY(examine_entry),opening_symbol_str, closing_symbol_str);
+                        if (cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) {
+                            value_str = simple_key_value_paired_stringtify(CJLIB_DICT_NODE_DATA(examine_entry), false);
+                        } else {
+                            value_str = simple_key_value_paired_stringtify(CJLIB_DICT_NODE_DATA(examine_entry), true);
+                        }
+
+                        tmp_key = wrap_complete_entry(CJLIB_DICT_NODE_KEY(examine_entry),opening_symbol_str, closing_symbol_str, false);
                         curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, 
                                                                                    tmp_key);
 
                         free(tmp_key);
                         tmp_key = NULL;
                     } else {
-                        value_str = simple_key_value_paired_stringtify(examine_entry_data);
+                        if (cjlib_queue_is_empty(curr_incomp.i_pending_data_q)) {
+                            value_str = simple_key_value_paired_stringtify(examine_entry_data, false);
+                        } else {
+                            value_str = simple_key_value_paired_stringtify(examine_entry_data, true);
+                        }
+
                         curr_incomp.i_state = incomplete_property_str_expand_state(curr_incomp.i_state, value_str, NULL);
                     }
                     free(tmp_state);
@@ -1033,7 +1082,9 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
                     tmp_state = NULL;
                     value_str = NULL;
                     break;
-            } 
+            }
+
+            set_comma_tmp = true;
         }
 
         opening_symbol = (CJLIB_OBJECT == curr_incomp.i_type)? opening_symbol_obj : opening_symbol_arr;
@@ -1041,7 +1092,12 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
         if (CJLIB_OBJECT == curr_incomp.i_type || CJLIB_ARRAY == curr_incomp.i_type) {
             tmp_state = curr_incomp.i_state;
-            curr_incomp.i_state = wrap_complete_entry(curr_incomp.i_state, opening_symbol, closing_symbol);
+
+            if (cjlib_stack_is_empty(&incomplete_st) || !curr_incomp.set_comma) {
+                curr_incomp.i_state = wrap_complete_entry(curr_incomp.i_state, opening_symbol, closing_symbol, false);
+            } else {
+                curr_incomp.i_state = wrap_complete_entry(curr_incomp.i_state, opening_symbol, closing_symbol, true);
+            }
 
             free(tmp_state);
             if (NULL == curr_incomp.i_state) return NULL;
@@ -1049,7 +1105,6 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
         value_str = curr_incomp.i_state;
        
-        // TODO - wrap the array/object with the correct {} or [].
         tmp_key   = curr_incomp.i_key;
         // Free the pending queue (there are no more incomplete data for the JSON object/array that were examined).
         free(curr_incomp.i_pending_data_q);

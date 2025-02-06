@@ -86,7 +86,7 @@ int main(void)
     (void) printf("%s\n", dst.c_value.c_str);*/
  
 
-    cjlib_json_stringtify(&json_file);
+    free((void *) cjlib_json_stringtify(&json_file));
 
     // // Close the json file.
     cjlib_json_close(&json_file);

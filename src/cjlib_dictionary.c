@@ -6,7 +6,7 @@
  * File: cjlib_dictionary.c
  *
  ************************************************************************
- * Copyright (C) 2024 Constantinos Argyriou
+ * Copyright (C) 2024-2025 Constantinos Argyriou
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -135,7 +135,9 @@ int cjlib_dict_preorder(struct cjlib_queue *restrict dst, const struct avl_bs_tr
             root = root->avl_left;
         }
         
-    } while(!cjlib_stack_is_empty(&pre_order_traversal_st));
+        if (cjlib_stack_is_empty(&pre_order_traversal_st) && NULL == root) break;
+
+    } while(true);
 
     (void) memcpy(dst, &pre_order_data_q, sizeof(struct cjlib_stack));
 
