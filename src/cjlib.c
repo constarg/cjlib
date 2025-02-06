@@ -110,9 +110,9 @@ static inline char *incomplete_property_str_expand_state
     if (NULL == new_state) return NULL;
     
     if (NULL == key) {
-        sprintf(new_state, "%s%s", state, data);
+        (void) sprintf(new_state, "%s%s", state, data);
     } else {
-        sprintf(new_state, "%s%s:%s", state, key, data);
+        (void) sprintf(new_state, "%s%s:%s", state, key, data);
     }
 
     return new_state;
@@ -747,6 +747,32 @@ read_err:
 }
 
 /**
+ * Enclose a state which represent a complete JSON entry with its 
+ * respective opening and closing symbol. For example is the 
+ * completed state were an object, then the opening symbol is { (curly brackets open)
+ * and the closing symbol is } (curly bracktes close)
+ *
+ * @param entry_state The state of the complete entry.
+ * @param opening_symbol The opening symbol of the entry.
+ * @param closing_symbol The closing symbol of the entry.
+ * @returns A string representing the opening_symbol entry closing_symbol on success. 
+ * Otherwise NULL.
+ */
+static inline char *wrap_complete_entry(const char *entry_state, char opening_symbol, 
+                                        char closing_symbol) 
+{
+    size_t additional_size = 3; // The size of {} or [].
+    size_t wrapped_size = strlen(entry_state) + additional_size;
+
+    char *wrapped_state = (char *) malloc(wrapped_size + 1);
+    if (NULL == wrapped_state) return NULL;
+
+    (void) sprintf(wrapped_state, "%c%s%c,", opening_symbol, entry_state, closing_symbol); 
+
+    return wrapped_state;
+}
+
+/**
  * Take the data of the current JSON field and its respective key as an argument 
  * and produce a string that is in format KEY : DATA, 
  *
@@ -762,37 +788,38 @@ static char *simple_key_value_paired_stringtify
     const size_t boolean_true_len  = 4;
     const size_t boolean_false_len = 5;
     const size_t null_len = 4;
+    const size_t double_quotes_len = 2;
     size_t digit_num = 0;
 
     char *result = NULL;
     switch (src->c_datatype) {
         case CJLIB_STRING:
             // LEN(KEY) + LEN(:) + LEN(VALUE) + LEN(,) + LEN("\0")
-            result = (char *) malloc(strlen(src->c_value.c_str) + comma_len + colon_len + 1);
+            result = (char *) malloc(strlen(src->c_value.c_str) + comma_len + colon_len + double_quotes_len + 1);
             if (NULL == result) return NULL;
-            sprintf(result, "%s,", src->c_value.c_str);
+            (void) sprintf(result, "\"%s\",", src->c_value.c_str);
             break;
         case CJLIB_NUMBER:
             digit_num = snprintf(NULL, 0, "%f", src->c_value.c_num);
             result = (char *) malloc(digit_num + comma_len + colon_len + 1);
             if (NULL == result) return NULL;
-            sprintf(result, "%f,", src->c_value.c_num);
+            (void) sprintf(result, "%f,", src->c_value.c_num);
             break;
         case CJLIB_BOOLEAN:
             if (src->c_value.c_boolean) {
                 result = (char *) malloc(boolean_true_len + comma_len + colon_len + 1);
                 if (NULL == result) return NULL;
-                sprintf(result, "%s,", "true");
+                (void) sprintf(result, "%s,", "true");
             } else {
                 result = (char *) malloc(boolean_false_len + comma_len + colon_len + 1);
                 if (NULL == result) return NULL;
-                sprintf(result, "%s,", "false");
+                (void) sprintf(result, "%s,", "false");
             }
             break;
         case CJLIB_NULL:
             result = (char *) malloc(null_len + comma_len + colon_len + 1);
             if (NULL == result) return NULL;
-            sprintf(result, "%s,", "null");
+            (void) sprintf(result, "%s,", "null");
             break;
         default:
             break;
@@ -814,9 +841,18 @@ static inline int switch_from_incomplete_obj_str_data
 (struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
  cjlib_json_object *entry)
 {
+    char opening_symbol_str = DOUBLE_QUOTES;
+    char closing_symbol_str = DOUBLE_QUOTES;
+    size_t key_wrapped_size = strlen(CJLIB_DICT_NODE_KEY(entry)) + 2;
+    char *key_wrapped = (char *) malloc(key_wrapped_size + 1);
+    if (NULL == key_wrapped) return -1;
+
+    (void) sprintf(key_wrapped, "%c%s%c", opening_symbol_str, CJLIB_DICT_NODE_KEY(entry), 
+                   closing_symbol_str);
+
     struct cjlib_json_data *examine_entry_data = CJLIB_DICT_NODE_DATA(entry);
     *dst = (struct incomplete_property_str) {
-        .i_key            = strdup(CJLIB_DICT_NODE_KEY(entry)),
+        .i_key            = key_wrapped,
         .i_type           = type,
         .i_state          = strdup(""),
         .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
@@ -836,9 +872,18 @@ static inline int switch_from_incomplete_arr_str_data
 (struct incomplete_property_str *restrict dst, enum cjlib_json_datatypes type, 
 struct cjlib_json_data *entry_data, const char *key)
 {
+    char opening_symbol_str = DOUBLE_QUOTES;
+    char closing_symbol_str = DOUBLE_QUOTES;
+    size_t key_wrapped_size = strlen(key) + 2;
+    char *key_wrapped = (char *) malloc(key_wrapped_size + 1);
+    if (NULL == key_wrapped) return -1;
+
+    (void) sprintf(key_wrapped, "%c%s%c", opening_symbol_str, key, 
+                   closing_symbol_str);
+
     struct cjlib_json_data *examine_entry_data = entry_data;
     *dst = (struct incomplete_property_str) {
-        .i_key            = strdup(key),
+        .i_key            = key_wrapped,
         .i_type           = type,
         .i_state          = strdup(""),
         .i_pending_data_q = (struct cjlib_queue *) malloc(sizeof(struct cjlib_queue))
@@ -865,7 +910,7 @@ struct cjlib_json_data *entry_data, const char *key)
  * @param src A pointer to the list from which the paointers will be extracted.
  * @return 0 on success, otherwise -1.
  */
-static int convert_list_to_queue(struct cjlib_queue *restrict dst, const struct cjlib_list *restrict src)
+static inline int convert_list_to_queue(struct cjlib_queue *restrict dst, const struct cjlib_list *restrict src)
 {
     struct cjlib_json_data *item; 
 
@@ -879,8 +924,13 @@ static int convert_list_to_queue(struct cjlib_queue *restrict dst, const struct 
     return 0;
 }
 
+
 const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 {
+    /**
+    *  TODO - 1. Why only a few kies are wrapped with double quotes, while the majority isn't
+    *         2. Why some fields don't appear in the stringtifying version? (look type field in the JSON).
+    */
     struct incomplete_property_str curr_incomp; // The currently expanding data.
     struct cjlib_stack incomplete_st;           // The stack of incomplete data.
     
@@ -890,6 +940,14 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
     char *tmp_state = NULL; // Used to control the memory (see default case in the switch below)
     char *tmp_key   = NULL; // Used to temporary store the key of the complete JSON object/array.
     char *value_str = NULL; // Used to temporary store the strintify data (see default case in the switch below)
+    
+    char opening_symbol_obj = CURLY_BRACKETS_OPEN;
+    char opening_symbol_arr = SQUARE_BRACKETS_OPEN;
+    char closing_symbol_obj = CURLY_BRACKETS_CLOSE;
+    char closing_symbol_arr = SQUARE_BRACKETS_CLOSE;
+
+    char opening_symbol;
+    char closing_symbol;
 
     // Initiazize the incomplete data.
     incomplete_property_str_init(&curr_incomp);
@@ -948,7 +1006,7 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
                 case CJLIB_ARRAY:
                     cjlib_stack_push(&curr_incomp, sizeof(struct incomplete_property_str), &incomplete_st);
 
-                    if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, curr_incomp.i_key)) return NULL;
+                    if (-1 == switch_from_incomplete_arr_str_data(&curr_incomp, CJLIB_ARRAY, examine_entry_data, CJLIB_DICT_NODE_KEY(examine_entry))) return NULL;
 
                     convert_list_to_queue(curr_incomp.i_pending_data_q, curr_incomp.i_data.array);
                     break;
@@ -971,7 +1029,19 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
             } 
         }
 
-        value_str = curr_incomp.i_state; // Save the pointer that points to the state of the complete object/array.
+        opening_symbol = (CJLIB_OBJECT == curr_incomp.i_type)? opening_symbol_obj : opening_symbol_arr;
+        closing_symbol = (CJLIB_OBJECT == curr_incomp.i_type)? closing_symbol_obj : closing_symbol_arr;
+
+        if (CJLIB_OBJECT == curr_incomp.i_type || CJLIB_ARRAY == curr_incomp.i_type) {
+            tmp_state = curr_incomp.i_state;
+            curr_incomp.i_state = wrap_complete_entry(curr_incomp.i_state, opening_symbol, closing_symbol);
+
+            free(tmp_state);
+            if (NULL == curr_incomp.i_state) return NULL;
+        }
+
+        value_str = curr_incomp.i_state;
+       
         // TODO - wrap the array/object with the correct {} or [].
         tmp_key   = curr_incomp.i_key;
         // Free the pending queue (there are no more incomplete data for the JSON object/array that were examined).
@@ -981,6 +1051,7 @@ const char *cjlib_json_object_stringtify(const cjlib_json_object *src)
 
     free(curr_incomp.i_key);
 
+    (void) printf("%s\n", curr_incomp.i_state);
     // Return the now completed JSON.
     return curr_incomp.i_state;
 }

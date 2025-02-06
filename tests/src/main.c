@@ -78,13 +78,12 @@ int main(void)
           exit(-1);
     }
 
-    if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "program")) {
+    if (-1 == cjlib_json_object_get(&dst, dst.c_value.c_obj, "cwd")) {
      	(void) printf("Error\n");
     	exit(-1);
     }
     
-     (void) printf("%s\n", dst.c_value.c_str);
-    */
+    (void) printf("%s\n", dst.c_value.c_str);*/
  
 
     cjlib_json_stringtify(&json_file);
