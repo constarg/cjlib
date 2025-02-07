@@ -42,8 +42,8 @@ The provided JSON is the following:
 
 ```JSON
 {
-	student_name: "John",
-	student_id: 1234
+	"student_name": "John",
+	"student_id": 1234
 }
 ```
 
