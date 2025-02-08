@@ -152,8 +152,8 @@ union cjlib_json_data_disting
  */
 struct cjlib_json_data
 {
-    union cjlib_json_data_disting c_value; // TODO - change to pointer.
-    enum cjlib_json_datatypes c_datatype;  // TODO - change to pointer.
+    union cjlib_json_data_disting c_value; 
+    enum cjlib_json_datatypes c_datatype;
 };
 
 static inline int cjlib_json_init(struct cjlib_json *restrict src)
