@@ -125,7 +125,7 @@ enum cjlib_json_datatypes
 };
 
 /**
- * The json object. !Library user must ignore this!.
+ * The json object.
 */
 struct cjlib_json
 {
