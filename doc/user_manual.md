@@ -19,6 +19,8 @@ The user may use this enum with some other elements that will be discussed in th
 `File: cjlib.h`
 
 ## JSON structures
+
+## cjlib_json
 To group all the information required for the JSON to be represented in the memory, cjlib has implemented a structure called **cjlib_json** which is defined as follows
 
 ```C
@@ -30,14 +32,59 @@ struct cjlib_json
 };
 ```
 
-`The user should not modify the contents of this structure in the code, as it may break the internal operation of the library, leading to memory leaks and memory corruption. Only the library functions must have the right to modify the contents of this structure. Where it is required, the user may access, it for read purposes only (of course I would like to make the declaration of the structure private, but in this case, it is less flexible and requires more memory allocations and systemcalls, therefore is less efficient in this way).`
+`The user should not modify the contents of this structure in the code, as it may break the internal operation of the library, leading to memory leaks and memory corruption. Only the library functions must have the right to modify the contents of this structure. If it is required, the user may access it for read purposes only (of course I would like to make the declaration of the structure private, but in this case, it is less flexible and requires more memory allocations and systemcalls, therefore is less efficient in this way).`
+
+`File: cjlib.h`
+
+## cjlib_json_data
+The most important structure for the library user is the **cjlib_json_data** structure. This structure consists of the information needed to save the required data to the internal data structure of the cjlib. The structure is defined as shown below:
+
+```C
+struct cjlib_json_data
+{
+    union cjlib_json_data_disting c_value; // The data to store/retrieve.
+    enum cjlib_json_datatypes c_datatype;  // The type of the data.
+};
+```
+
+This structure consists of two elements. The first is the **c_value** which represents the JSON data to be saved/retrieved (boolean, number, object, arrays). The second represents the type of data stored in the **c_value** member. The **c_datatype** member will not be discussed further, as the **Json types** section described the available types that could be stored in this member. The member to which the focus will be pointed is the c_value member. As shown in the definition of the structure, this field/member is another built-in data structure of C, which is a union, that helps to distinguish between the available types of the JSON, using only one single and simple data structure. Shown below is the definition of the union that represents the data of the JSON.
+
+```C
+union cjlib_json_data_disting
+{
+    char *c_str;               // string
+    cjlib_json_num c_num;      // Number
+    cjlib_json_bool c_boolean; // Boolean.
+    cjlib_json_object *c_obj;  // json object.
+    void *c_null;              // null
+    cjlib_json_array *c_arr;   // array.
+};
+
+```
+
+The user may use both the cjlib_json_data structure and the cjlib_json_data_disting union to determine 1) the type of the data that was stored/retrieved from the internal representation of the JSON in the memory and 2) to receive/store the respective value from/in the corresponding field of the union. Following, there is an illustrative example that creates simple data, a number, using the definitions presented here.
+
+```C
+#include "cjlib.h"
+
+int main(void) {
+	struct cjlib_json_data my_data; // Where the data are stored.
+	
+	my_data.c_datatype = CJLIB_NUMBER; // The type of the data.
+	my_data.c_value    = 50;  	   // The actual data.
+	// store the data in the internal data structure...
+}
+```
+
+Further details on how to store/retrieve the data to/from the Internal data structure are described in the following sections.
+
 
 `File: cjlib.h`
 
 # Errors
 
 ## Error types
-The library provides the user with a plethora of errors for the correct error handling. To do this, it provides the following types of errors that may appear when manipulating JSON files.
+The library provides the user with a plethora of errors for error handling. To do this, it provides the following types of errors that may appear when manipulating JSON files.
 
 ``` C
 enum cjlib_json_error_types
