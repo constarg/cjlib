@@ -76,7 +76,7 @@ int main(void) {
 }
 ```
 
-Further details on how to store/retrieve the data to/from the Internal data structure are described in the following sections.
+Further details on how to store/retrieve the data to/from the internal data structure are described in the following sections.
 
 
 `File: cjlib.h`
