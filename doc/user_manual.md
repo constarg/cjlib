@@ -129,44 +129,76 @@ ___
 ## cjlib_json_error_init
 ___
 ### Description
+It is used to make the required initializations on the memory where the internal structure representing the errors is stored.
 
 ### Function signature
 ```C
-
+int cjlib_json_error_init(void)
 ```
 
 ### Parameters
+No parameters are required.
 
 ### Return
---
+An integer indicating whether the initialization succeeded. If succeed, 0 is returned, otherwise -1.
 
 ### Errors
---
+No specific error is returned. 
 
 ### Example
 ```C
+#include "cjlib_error.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+	if (-1 == cjlib_json_error_init()) {
+		(void) printf("Failed to initialize JSON errors\n");
+		exit(EXIT_FAILURE);
+	}
+	return EXIT_SUCCESS;
+}
 ```
 
 ___
 ## cjlib_json_error_destroy
 ___
 ### Description
+Is used to release the resources that was allocated for the internal error structure.
 
 ### Function signature
 ```C
-
+void cjlib_json_error_destroy(void);
 ```
 
 ### Parameters
+No parameters are required.
 
 ### Return
---
+Nothing is returned.
 
 ### Errors
---
+No specific error is returned. 
 
 ### Example
 ```C
+#include "cjlib_error.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+	// Initialize the componentes of the error structure.
+	if (-1 == cjlib_json_error_init()) {
+		(void) printf("Failed to initialize JSON errors\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	// Code...
+	
+	// Release the components.
+	cjlib_json_error_destroy();
+	return EXIT_SUCCESS
+}
 ```
 
 ___
