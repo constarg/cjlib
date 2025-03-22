@@ -185,6 +185,8 @@ void cjlib_json_close(struct cjlib_json *restrict src)
     cjlib_json_destroy(src);
     fclose(src->c_fp);
     (void) memset(src, 0x0, sizeof(struct cjlib_json));
+ 
+    cjlib_json_error_destroy();
 }
 
 static CJLIB_ALWAYS_INLINE bool is_number(const char *restrict src)

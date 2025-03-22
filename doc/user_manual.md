@@ -124,116 +124,21 @@ struct cjlib_json_error
 
 # Error related functions
 Cjlib provides the errors by manipulating an internal (private) variable in the implementation of cjlib_error.c file. This is done to protect it from mistaken actions. To access the private variable that has the information about the error that occurred, the library provides the following functions. Each of the following functions is **thread safe**, as it uses mutex, to allow multiple threads to check for errors (if this is necessary).
-
-___
-## cjlib_json_error_init
-___
-### Description
-It is used to make the required initializations on the memory where the internal structure representing the errors is stored.
-
-### Function signature
-```C
-int cjlib_json_error_init(void)
-```
-
-### Parameters
-No parameters are required.
-
-### Return
-An integer indicating whether the initialization succeeded. If succeed, 0 is returned, otherwise -1.
-
-### Errors
-No specific error is returned. 
-
-### Example
-```C
-#include "cjlib_error.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-int main(void) {
-	if (-1 == cjlib_json_error_init()) {
-		(void) printf("Failed to initialize JSON errors\n");
-		exit(EXIT_FAILURE);
-	}
-	return EXIT_SUCCESS;
-}
-```
-
-___
-## cjlib_json_error_destroy
-___
-### Description
-Is used to release the resources that was allocated for the internal error structure.
-
-### Function signature
-```C
-void cjlib_json_error_destroy(void);
-```
-
-### Parameters
-No parameters are required.
-
-### Return
-Nothing is returned.
-
-### Errors
-No specific error is returned. 
-
-### Example
-```C
-#include "cjlib_error.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-int main(void) {
-	// Initialize the componentes of the error structure.
-	if (-1 == cjlib_json_error_init()) {
-		(void) printf("Failed to initialize JSON errors\n");
-		exit(EXIT_FAILURE);
-	}
-	
-	// Code...
-	
-	// Release the components.
-	cjlib_json_error_destroy();
-	return EXIT_SUCCESS
-}
-```
-
-___
-## cjlib_setup_error
-___
-### Description
-
-### Function signature
-```C
-
-```
-
-### Parameters
-
-### Return
---
-
-### Errors
---
-
-### Example
-```C
-```
-
 ___
 ## cjlib_json_get_error
 ___
 ### Description
+The cjlib_json_get error is leveraged to request the error produced by a function. It is typically used after a function fails to get more details about the error that occurred internally in the library. Each of the library functions returns a subset of the available errors; thus, there is no need to check for all the errors for each function. The possible errors from each library function are documented.
+
+The user may ignore the errors retrieved from the internal error structure but must always check if a library function is erroneous. Otherwise, unexpected behavior may occur, breaking the program.
 
 ### Function signature
 ```C
-
+void cjlib_json_get_error(struct cjlib_json_error *restrict dst);
 ```
 
 ### Parameters
+**dst**: A pointer to the memory region to store the details about the error occured.
 
 ### Return
 --
@@ -243,6 +148,41 @@ ___
 
 ### Example
 ```C
+#include "cjlib_error.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {	
+	// Oh!, an error occured during a hypithetical function from the library.
+	// Try to get details on where and why the error were occured.
+	
+	struct cjlib_json_error error_details;
+	cjlib_json_get_error(&error_details);
+	
+	// OK, lets see if the library have some more helpful details, like which element caused the error.
+	
+	if (NULL != error_details.c_property_name) {
+		(void) printf("Errornus propery name: %s\n", error_details.c_property_name);
+	}
+	
+	// Lets see if we can retrieve the value of the property.
+	if (NULL != error_details.c_property_value) {
+		(void) printf("Errornus property value: %s\n", error_details.c_property_value);
+	}
+	
+	switch (error_details.c_error_code) {
+		case INVALID_TYPE: 
+			(void) printf("Ah!, there is a type that is not valid for the JSON standard!\n")
+			break;
+		case MISSING_SEPERATOR:
+			(void) printf("Somewhere in the the JSON file, there must be a separator: but there is not\n")
+		
+		...
+	}
+
+	return EXIT_SUCCESS
+}
+
 ```
 
 ___
