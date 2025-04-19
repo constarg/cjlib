@@ -871,7 +871,7 @@ static char *simple_key_value_paired_stringtify
 }
 
 /**
- * Switches to another incompelete object,i.e., when a nested array or object is 
+ * Switches to another incomplete object,i.e., when a nested array or object is
  * detected.
  *
  * @param dst A pointer that points to the location to store the switched data.

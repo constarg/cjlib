@@ -18,7 +18,6 @@
  *************************************************************************
  */
 
-
 #ifndef CJLIB_H
 #define CJLIB_H
 
@@ -32,13 +31,13 @@
 #include "cjlib_list.h"
 #include "cjlib_error.h"
 
-typedef double cjlib_json_num;
-typedef bool cjlib_json_bool;
-typedef char *cjlib_json_path;
+typedef double cjlib_json_num; /* Represents a JSON number. */
+typedef bool cjlib_json_bool;  /* Represents a JSON boolean entry. */
+typedef char *cjlib_json_path; /* A string that represents the location of the JSON file. */
 
-typedef FILE *cjlib_json_fd;
-typedef cjlib_dict_t cjlib_json_object;
-typedef struct cjlib_list cjlib_json_array;
+typedef FILE *cjlib_json_fd;                /* The file descriptor of the JSON file. */
+typedef cjlib_dict_t cjlib_json_object;     /* Represents a JSON object. */
+typedef struct cjlib_list cjlib_json_array; /* Represents a JSON array. */
 
 #if defined(__GNUC__) || defined(__clang__)
 
@@ -46,6 +45,7 @@ typedef struct cjlib_list cjlib_json_array;
   #undef CJLIB_ALWAYS_INLINE
 #endif
 
+// CJLIB_ALWAYS_INLINE is used to optimize inline functions.
 #define CJLIB_ALWAYS_INLINE inline __attribute__((__always_inline__))
 
 #else
@@ -62,7 +62,20 @@ typedef struct cjlib_list cjlib_json_array;
 
 #if defined(__linux__)
 
+/**
+ * CJLIB_BRANCH_LIKELY is used to optimize a branch operation
+ * in which a condition is commonly true.
+ *
+ * @param x The variable that determines if the code in the branch is going to be executed.
+ */
 #define CJLIB_BRANCH_LIKELY(x) __builtin_expect(!!(x), 1)
+
+/**
+ * CJLIB_BRANCH_UNLIKELY is used to optimize a branch operation
+ * in which a condition is not commonly true.
+ *
+ * @param x The variable that determines if the code in the branch is going to be executed.
+ */
 #define CJLIB_BRANCH_UNLIKELY(x) __builtin_expect(!!(x), 0)
 
 #else
@@ -94,68 +107,118 @@ typedef struct cjlib_list cjlib_json_array;
  #undef CJLIB_GET_ARR
 #endif
 
-// For each for array access.
+/**
+ * CJILB_ARR_FOR_EACH iterates on each element of the array ARR_PTR and store
+ * the contents of the current element in the variable ITEM.
+ *
+ * @param ITEM Represents the currently examined element of the array.
+ * @param ARR_PTR Represents a pointer to the array of interest.
+ * @param TYPE Represents the data-type of the items present in the array.
+ */
 #define CJLIB_ARR_FOR_EACH(ITEM, ARR_PTR, TYPE) (CJLIB_LIST_FOR_EACH(ITEM, ARR_PTR, TYPE))
 
-// Some useful macros.
-// Retrieve the number which is inside the data.
+/**
+ * CJLIB_GET_NUMBER retrieves a number data-type from the cjlib_data structure.
+ * It could be used as a more readable version of its equivalent: CJLIB_DATA.c_value.c_num.
+ *
+ * @param CJLIB_DATA A variable declared as a type of cjlib_json_data structure.
+ */
 #define CJLIB_GET_NUMBER(CJLIB_DATA) (CJLIB_DATA.c_value.c_num)
-// Retrieve the string which is inside the data.
+
+/**
+ * CJLIB_GET_STRING retrieves a string data-type from the cjlib_data structure.
+ * It could be used as a more readable version of its equivalent: CJLIB_DATA.c_value.c_str.
+ *
+ * @param CJLIB_DATA A variable declared as a type of cjlib_json_data structure.
+ */
 #define CJLIB_GET_STRING(CJLIB_DATA) (CJLIB_DATA.c_value.c_str)
-// Retrieve the boolean which is inside the data.
+
+/**
+ * CJLIB_GET_BOOL retrieves a boolean data-type from the cjlib_data structure.
+ * It could be used as a more readable version of its equivalent: CJLIB_DATA.c_value.c_boolean.
+ *
+ * @param CJLIB_DATA A variable declared as a type of cjlib_json_data structure.
+ */
 #define CJLIB_GET_BOOL(CJLIB_DATA)   (CJLIB_DATA.c_value.c_boolean)
-// Retrieve the object which is inside the data.
+
+/**
+ * CJLIB_GET_OBJECT retrieves an object data-type from the cjlib_data structure.
+ * It could be used as a more readable version of its equivalent: CJLIB_DATA.c_value.c_obj.
+ *
+ * @param CJLIB_DATA A variable declared as a type of cjlib_json_data structure.
+ */
 #define CJLIB_GET_OBJECT(CJLIB_DATA) (CJLIB_DATA.c_value.c_obj)
-// Retrieve the Array which is inside the data.
+
+/**
+ * CJLIB_GET_ARRAY retrieves an array data-type from the cjlib_data structure.
+ * It could dbe used as a more readable version of its equivalent: CJLIB_DATA.c_value.c_arr
+ *
+ * @param CJLIB_DATA A variable declared as a type of cjlib_json_data structure.
+ */
 #define CJLIB_GET_ARRAY(CJLIB_DATA)  (CJLIB_DATA.c_value.c_arr)
 
+/**
+ * CJLIB_INIT_SIZE determines an initial number of elements for a new array
+ */
 #define CJLIB_ARRAY_INIT_SIZE 200
 
 /**
- * The available datatypes, that json support.
+ * cjlib_json_datatypes enumeration declares the list of available
+ * data-types in JSON standard.
 */
 enum cjlib_json_datatypes
 {
-    CJLIB_STRING,
-    CJLIB_NUMBER,
-    CJLIB_ARRAY,
-    CJLIB_BOOLEAN,
-    CJLIB_OBJECT,
-    CJLIB_NULL
+    CJLIB_STRING,  /* Represents the STRING data-type. */
+    CJLIB_NUMBER,  /* Represents the INTEGER/FLOAT data-type. */
+    CJLIB_ARRAY,   /* Represents the ARRAY data-type. */
+    CJLIB_BOOLEAN, /* Represents the BOOLEAN data-type. */
+    CJLIB_OBJECT,  /* Represents the OBJECT data-type. */
+    CJLIB_NULL     /* Represents the NULL data-type. */
 };
 
 /**
- * The json object.
+ *  cjlib_json represents the JSON representation stored in memory.
 */
 struct cjlib_json
 {
-    cjlib_json_fd c_fp;        // The file pointer of the json file.
-    cjlib_json_object *c_dict; // The dictionary that contains the values of the json.
-    char *c_path;              // The path to the respective file.
+    cjlib_json_fd c_fp;        /* Represents the file pointer of the JSON file. */
+    cjlib_json_object *c_dict; /* Represents the root-object containing all the entries. */
+    char *c_path;              /* Represents the path to the JSON file. */
 };
 
 /**
- * Json data type. Important for the user who uses this library.
+ * cjlib_json_data_disting is used to differentiate between data-types.
 */
 union cjlib_json_data_disting
 {
-    char *c_str;               // string
-    cjlib_json_num c_num;      // Number
-    cjlib_json_bool c_boolean; // Boolean.
-    cjlib_json_object *c_obj;  // json object.
-    void *c_null;              // null
-    cjlib_json_array *c_arr;   // array.
+    char *c_str;               /* Represents a STRING data-type. */
+    cjlib_json_num c_num;      /* Represents a INTEGER/FLOAT data-type. */
+    cjlib_json_bool c_boolean; /* Represents a BOOLEAN data-type. */
+    cjlib_json_object *c_obj;  /* Represents an OBJECT data-type. */
+    void *c_null;              /* Represents a NULL data-type. */
+    cjlib_json_array *c_arr;   /* Represents an ARRAY data-type. */
 };
 
 /**
- * This structure represents the data retrieved or stored from a JSON file.
+ * cjlib_json_data represents an entry of the JSON file.
  */
 struct cjlib_json_data
 {
-    union cjlib_json_data_disting c_value; 
-    enum cjlib_json_datatypes c_datatype;
+    union cjlib_json_data_disting c_value; /* Represents the value of the entry. */
+    enum cjlib_json_datatypes c_datatype;  /* Represents the data-type of the value. */
+    /*
+     * c_value constitute of a type specified in the cjlib_json_data_disting union, thus
+     * a second field, c_datatype, is required to know the selected data-type.
+     */
 };
 
+/**
+ * cjlib_json_init Initializes a JSON structure.
+ *
+ * @param src A pointer to the memory area where the JSON representation in memory is stored.
+ * @return An integer indicating whether the operation were succeed. 0 is returned on success,
+ * otherwise -1.
+ */
 static inline int cjlib_json_init(struct cjlib_json *restrict src)
 {
     (void) memset(src, 0x0, sizeof(struct cjlib_json));
@@ -165,6 +228,11 @@ static inline int cjlib_json_init(struct cjlib_json *restrict src)
     return 0;
 }
 
+/**
+ * cjlib_json_destroy is used to free the memory allocated by the JSON.
+ *
+ * @param src A pointer to the memory area where the JSON representation in memory is stored.
+ */
 static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
 {
     cjlib_dict_destroy(src->c_dict);
@@ -173,6 +241,11 @@ static inline void cjlib_json_destroy(struct cjlib_json *restrict src)
     src->c_path = NULL;
 }
 
+/**
+ * cjlib_json_make_object is leveraged for creating a new JSON object.
+ *
+ * @return A pointer to the newly created JSON object.
+ */
 static inline cjlib_json_object *cjlib_json_make_object(void)
 {
     cjlib_json_object *obj = cjlib_make_dict();
@@ -180,13 +253,31 @@ static inline cjlib_json_object *cjlib_json_make_object(void)
     return obj;
 }
 
+/**
+ * cjlib_json_data_init Initializes the structure responsible for representation
+ * a JSON data-type.
+ *
+ * @param src A pointer to the memory area where the JSON data entry is stored.
+ */
 static inline void cjlib_json_data_init(struct cjlib_json_data *restrict src)
 {
     (void) memset(src, 0x0, sizeof(struct cjlib_json_data));
 }
 
+/**
+ * cjlib_json_free_array is used to free the memory allocated by an
+ * array data-type.
+ *
+ * @param src A pointer to the memory area where the array is stored.
+ */
 static void cjlib_json_free_array(cjlib_json_array *src);
 
+/**
+ * cjlib_json_data_destroy is used to free the memory allocated by a JSON
+ * entry.
+ *
+ * @param src A pointer to the memory area where the JSON entry is stored.
+ */
 static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
 {
     if (NULL == src) return;
@@ -206,6 +297,12 @@ static inline void cjlib_json_data_destroy(struct cjlib_json_data *restrict src)
     }
 }
 
+/**
+ * cjlib_array_free_data Is used to free the JSON entries
+ * stored in an array.
+ *
+ * @param src A pointer to the memory area where the JSON entry is stored.
+ */
 static inline void cjlib_array_free_data(void *restrict src)
 {
     struct cjlib_json_data *data = (struct cjlib_json_data *) src;
@@ -217,6 +314,11 @@ static inline void cjlib_json_free_array(cjlib_json_array *src)
     cjlib_list_destroy(src, &cjlib_array_free_data);
 }
 
+/**
+ * cjlib_json_make_array create a new array data-type entry
+ *
+ * @return A pointer to the memory area where the newly created array-type is stored.
+ */
 static inline cjlib_json_array *cjlib_json_make_array(void)
 {
     cjlib_json_array *arr = make_list();
@@ -225,22 +327,39 @@ static inline cjlib_json_array *cjlib_json_make_array(void)
     return arr;
 }
 
+/**
+ * cjlib_json_array_append appends an ew element at the end of an array.
+ *
+ * @param src A pointer to the memory area where the array to append the new element is stored.
+ * @param value The value to store into the array.
+ * @return An integer indicating whether the operation were successfully. On success 0 is returned, otherwise
+ * -1.
+ */
 static inline int cjlib_json_array_append(cjlib_json_array *restrict src, const struct cjlib_json_data *restrict value)
 {
     return cjlib_list_append((const void *) value, sizeof(struct cjlib_json_data), src);
 }
 
+/**
+ * cjlib_json_array_get retrieves an element from an array based on the index requested.
+ *
+ * @param dst A pointer to the memory area where the data retrieved will be stored.
+ * @param index An integer representing the index of the element.
+ * @param arr A pointer to the memory area where the array is stored.
+ * @return An integer indicating whether the element is found or not. On success 0 is returned, otherwise
+ * -1.
+ */
 static inline int cjlib_json_array_get(struct cjlib_json_data *restrict dst, int index, cjlib_json_array *restrict arr)
 {
     return cjlib_list_get(dst, sizeof(struct cjlib_json_data), index, arr);
 }
 
 /**
- * This function acociates a key (string) to a value and set this combination key - value
+ * This function associates a key (string) to a value and set this combination key - value
  * to a json object.
  * 
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
+ * @param key A string that associates the value with it.
  * @param value The value to associate with the key.
  * @param datatype The json datatype of the value.
  * @return 0 on success, otherwise -1.
@@ -251,9 +370,10 @@ extern int cjlib_json_object_set
 
 /**
  * This function get the data associated with the key.
+ *
  * @param dst A pointer that points to the location where the retrieved data should be stored.
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
+ * @param key A string that associates the value with it.
  * @param value The value associated with the key.
  * @return 0 on success, otherwise -1.
 */
@@ -262,10 +382,11 @@ extern int cjlib_json_object_get
  const char *restrict key);
 
 /**
- * This function removes the data associated with the key.
+ * cjlib_json_object_remove removes the data associated with the key.
+ *
  * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates a value with it. 
+ * @param key A string that associates a value with it.
  * @return 0 on success, otherwise -1.
 */
 extern int cjlib_json_object_remove
@@ -273,11 +394,11 @@ extern int cjlib_json_object_remove
  const char *key);
 
 /**
- * This function acociates a key (string) to a value and set this combination key - value
+ * This function associates a key (string) to a value and set this combination key - value
  * to a json object.
  * 
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
+ * @param key A string that associates the value with it.
  * @param value The value to associate with the key.
  * @param datatype The json datatype of the value.
  * @return 0 on success, otherwise -1.
@@ -291,9 +412,10 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_set
 
 /**
  * This function get the data associated with the key.
+ *
  * @param dst A pointer that points to the location where the retrieved data should be stored.
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates the value with it.
+ * @param key A string that associates the value with it.
  * @param value The value associated with the key.
  * @return 0 on success, otherwise -1.
 */
@@ -307,9 +429,10 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_get
 
 /**
  * This function removes the data associated with the key.
+ *
  * @param dst A pointer that points to the location where the retrieved data should be stored. (can be NULL).
  * @param src A pointer to the json object in which we should put the value.
- * @param key A string that acociates a value with it. 
+ * @param key A string that associates a value with it.
  * @return 0 on success, otherwise -1.
 */
 static CJLIB_ALWAYS_INLINE int cjlib_json_remove
@@ -321,6 +444,7 @@ static CJLIB_ALWAYS_INLINE int cjlib_json_remove
 
 /**
  * This function open's a json file.
+ *
  * @param dst The json object associated with the json file.
  * @param json_path The path to the json file of interest.
  * @return 0 on success, otherwise -1.
@@ -331,12 +455,14 @@ extern int cjlib_json_open
 
 /**
  * This function close a json file.
+ *
  * @param src The json object associated with the open file.
 */
 extern void cjlib_json_close(struct cjlib_json *restrict src);
 
 /**
  * This function read's the contents of a json file.
+ *
  * @param dst Where to put all the information's about the json.
  * @return 0 on success, otherwise -1.
 */
@@ -344,6 +470,7 @@ extern int cjlib_json_read(struct cjlib_json *restrict dst);
 
 /**
  * This function make a json file to string.
+ *
  * @param src The json object
  * @return on success, a pointer at the start of a string that represent the string version
  * of the given json file. Otherwise, null.
